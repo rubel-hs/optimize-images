@@ -1,0 +1,14 @@
+{
+  "name": "oi",
+  "version": "1.0.0",
+  "description": "Global image optimizer CLI",
+  "bin": {
+    "oi": "./cli.js"
+  },
+  "dependencies": {
+    "sharp": "^0.33.2",
+    "chalk": "^4.1.2",
+    "glob": "^10.3.10",
+    "cli-progress": "^3.12.0"
+  }
+}
