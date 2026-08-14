@@ -214,7 +214,7 @@ npm test
 
 ## 📋 Requirements
 
-Node.js **>= 18.17.0**
+Node.js **>= 20.9.0**
 
 ## 📄 License
 
