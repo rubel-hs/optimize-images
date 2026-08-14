@@ -1,7 +1,7 @@
 {
   "name": "oi-optimize-images",
   "version": "1.0.0",
-  "description": "Fast CLI to compress, convert and resize images in bulk — powered by sharp",
+  "description": "🖼️ Shrink, convert and resize whole folders of images with one short command — fast, safe, powered by sharp",
   "type": "commonjs",
   "bin": {
     "oi": "cli.js"
