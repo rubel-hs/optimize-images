@@ -42,7 +42,8 @@ exactly how many bytes you saved. Powered by [sharp](https://sharp.pixelplumbing
 - 🧹 **Optional cleanup** — drop the source files after converting
 - 💪 **Keeps going** — one broken image is reported and skipped, not fatal
 - 🚀 **mozjpeg encoding** — smaller JPEGs than stock at the same quality
-- 🪶 **Tiny install** — 4 files, 5.2 kB
+- 🪶 **Tiny install** — 9.2 kB packed, sharp plus three small helpers
+- 🧩 **Usable as a library** — `require("oi-optimize-images")` for the same engine without the CLI
 
 ---
 
@@ -148,6 +149,66 @@ oi photo.png -f webp
   compressed file again degrades it further.
 
 **Supported inputs:** `.jpg` `.jpeg` `.png` `.webp` `.avif` `.tiff` `.tif` `.gif`
+
+---
+
+## 📦 Use it from Node
+
+The CLI is a thin layer over an API you can call yourself:
+
+```js
+const { findImageFiles, optimizeImages, formatBytes } = require("oi-optimize-images");
+
+const files = await findImageFiles("./images");
+const summary = await optimizeImages(files, { quality: 70, format: "webp" });
+
+console.log(`Saved ${formatBytes(summary.originalSize - summary.newSize)}`);
+```
+
+`optimizeImages` takes the same options as the flags (`quality`, `format`,
+`size: { width, height }`, `deleteOriginal`) and an optional
+`{ onProgress, onFailure }` pair of callbacks. It never prints and never exits —
+bad input throws a `UserError`.
+
+---
+
+## 🤝 Contributing
+
+```
+bin/oi.js                    shebang launcher, hands off to the CLI
+src/
+  index.js                   public API — the root export
+  formats.js                 every supported format: extensions + sharp encoder
+  defaults.js                default options and the quality range
+  find-image-files.js        a path in, absolute image paths out
+  optimize-image.js          one file: resize, encode, atomic write, cleanup
+  optimize-images.js         many files: loop, tally, survive failures
+  format-bytes.js            1536 -> "1.5 KB"
+  user-error.js              problems the user can fix
+  cli/
+    index.js                 wires parsing, discovery and reporting together
+    parse-arguments.js       argv -> options
+    help.js                  the --help screen
+    reporter.js              every line the CLI prints
+test/                        one file per module, plus end-to-end CLI tests
+```
+
+Two rules keep it easy to work in:
+
+- **Formats live in one place.** `src/formats.js` drives `--format` validation,
+  the file-discovery glob, the extension lookup and the sharp call. Supporting a
+  new format is one entry in `FORMATS` and nothing else.
+- **The core never prints and never exits.** Anything under `src/` outside
+  `src/cli/` throws `UserError` and returns data. `src/cli/reporter.js` owns the
+  terminal, which is what makes the engine importable and testable.
+
+The suite runs on Node's built-in test runner — no framework to install. It
+generates real images into a temp directory, so it exercises sharp for real
+rather than mocking it.
+
+```bash
+npm test
+```
 
 ---
 

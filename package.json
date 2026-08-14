@@ -1,13 +1,15 @@
 {
   "name": "oi-optimize-images",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "🖼️ Shrink, convert and resize whole folders of images with one short command — fast, safe, powered by sharp",
   "type": "commonjs",
+  "main": "src/index.js",
   "bin": {
-    "oi": "cli.js"
+    "oi": "bin/oi.js"
   },
   "files": [
-    "cli.js",
+    "bin",
+    "src",
     "README.md",
     "LICENSE"
   ],
@@ -15,7 +17,7 @@
     "node": ">=18.17.0"
   },
   "scripts": {
-    "test": "node cli.js --help"
+    "test": "node --test test/*.test.js"
   },
   "keywords": [
     "image",
