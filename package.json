@@ -1,14 +1,52 @@
 {
-  "name": "oi",
+  "name": "oi-optimize-images",
   "version": "1.0.0",
-  "description": "Global image optimizer CLI",
+  "description": "🖼️ Shrink, convert and resize whole folders of images with one short command — fast, safe, powered by sharp",
+  "type": "commonjs",
   "bin": {
-    "oi": "./cli.js"
+    "oi": "cli.js"
+  },
+  "files": [
+    "cli.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "scripts": {
+    "test": "node cli.js --help"
+  },
+  "keywords": [
+    "image",
+    "images",
+    "optimize",
+    "optimizer",
+    "compress",
+    "compression",
+    "resize",
+    "convert",
+    "webp",
+    "avif",
+    "jpeg",
+    "png",
+    "sharp",
+    "cli"
+  ],
+  "author": "Rubel Hossain <rubel.themefisher@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rubel-hs/optimize-images.git"
+  },
+  "homepage": "https://github.com/rubel-hs/optimize-images#readme",
+  "bugs": {
+    "url": "https://github.com/rubel-hs/optimize-images/issues"
   },
   "dependencies": {
-    "sharp": "^0.33.2",
     "chalk": "^4.1.2",
+    "cli-progress": "^3.12.0",
     "glob": "^10.3.10",
-    "cli-progress": "^3.12.0"
+    "sharp": "^0.33.2"
   }
 }
