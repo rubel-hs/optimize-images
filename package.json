@@ -37,11 +37,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rubel-sh/optimize-images.git"
+    "url": "git+https://github.com/rubel-hs/optimize-images.git"
   },
-  "homepage": "https://github.com/rubel-sh/optimize-images#readme",
+  "homepage": "https://github.com/rubel-hs/optimize-images#readme",
   "bugs": {
-    "url": "https://github.com/rubel-sh/optimize-images/issues"
+    "url": "https://github.com/rubel-hs/optimize-images/issues"
   },
   "dependencies": {
     "chalk": "^4.1.2",
