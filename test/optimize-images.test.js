@@ -127,6 +127,36 @@ describe("optimizeImages", () => {
     assert.deepEqual(listFiles(dir), ["logo.jpg", "logo.png"]);
   });
 
+  it("finishes sooner with a wider concurrency", async () => {
+    const corpus = async () => {
+      const dir = createTempDir();
+      return Promise.all(
+        Array.from({ length: 8 }, (_, seed) =>
+          writeImage(dir, `img-${seed}.jpg`, {
+            width: 1200,
+            height: 900,
+            seed: seed + 1,
+          }),
+        ),
+      );
+    };
+
+    const time = async (files, concurrency) => {
+      const started = process.hrtime.bigint();
+      const summary = await optimizeImages(files, { concurrency, format: "webp" });
+      assert.equal(summary.optimized, 8);
+      return Number(process.hrtime.bigint() - started);
+    };
+
+    const serial = await time(await corpus(), 1);
+    const parallel = await time(await corpus(), 4);
+
+    assert.ok(
+      parallel < serial * 0.8,
+      `expected 4 at a time to beat 1 at a time, got ${parallel / 1e6}ms vs ${serial / 1e6}ms`,
+    );
+  });
+
   it("handles an empty list without touching the callbacks", async () => {
     let calls = 0;
     const summary = await optimizeImages([], {}, {

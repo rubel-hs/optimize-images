@@ -122,6 +122,7 @@ oi photo.png -f webp
 | `-q, --quality <1-100>` | 🎚️ Output quality | `80` |
 | `-f, --format <fmt>` | 🔄 `original`, `jpg`, `png`, `webp`, `avif`, `tiff`, `gif` | `original` |
 | `-s, --size <WxH>` | 📐 Fit inside these dimensions, e.g. `800x600` | none |
+| `-j, --concurrency <n>` | 🧵 Images encoded at once | one per core |
 | `-d, --delete-original` | 🧹 Delete the source after converting to a new format | off |
 | `-h, --help` | 💬 Show help | |
 

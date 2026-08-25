@@ -3,7 +3,11 @@
 const assert = require("node:assert/strict");
 const { describe, it } = require("node:test");
 
-const { DEFAULT_OPTIONS } = require("../src/defaults");
+const {
+  CONCURRENCY_MAX,
+  CONCURRENCY_MIN,
+  DEFAULT_OPTIONS,
+} = require("../src/defaults");
 const { UserError } = require("../src/user-error");
 const { parseArguments } = require("../src/cli/parse-arguments");
 
@@ -73,6 +77,11 @@ describe("parseArguments options", () => {
     assert.equal(options.deleteOriginal, true);
   });
 
+  it("reads concurrency in short and long form", () => {
+    assert.equal(parse("./images", "-j", "3").concurrency, 3);
+    assert.equal(parse("./images", "--concurrency", "12").concurrency, 12);
+  });
+
   it("lets a later flag win over an earlier one", () => {
     assert.equal(parse("./images", "-q", "30", "-q", "90").quality, 90);
   });
@@ -104,6 +113,12 @@ describe("parseArguments rejections", () => {
   it("rejects a malformed size", () => {
     expectUserError(/Size must be in WxH format/, "./images", "-s", "600");
     expectUserError(/Size must be in WxH format/, "./images", "-s", "600*300");
+  });
+
+  it(`rejects concurrency outside ${CONCURRENCY_MIN}-${CONCURRENCY_MAX}`, () => {
+    expectUserError(/Concurrency must be/, "./images", "-j", "0");
+    expectUserError(/Concurrency must be/, "./images", "-j", String(CONCURRENCY_MAX + 1));
+    expectUserError(/Concurrency must be/, "./images", "-j", "lots");
   });
 
   it("rejects a flag whose value is missing", () => {

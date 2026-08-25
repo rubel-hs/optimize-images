@@ -37,7 +37,7 @@ describe("oi --help", () => {
   it("documents every flag", () => {
     const { stdout } = runCli("--help");
 
-    for (const flag of ["--quality", "--format", "--size", "--delete-original", "--help"]) {
+    for (const flag of ["--quality", "--format", "--size", "--concurrency", "--delete-original", "--help"]) {
       assert.ok(stdout.includes(flag), `help does not mention ${flag}`);
     }
   });
@@ -46,8 +46,9 @@ describe("oi --help", () => {
     const { DEFAULT_OPTIONS } = require("../src/defaults");
     const { stdout } = runCli("--help");
 
-    assert.match(stdout, new RegExp(`default: ${DEFAULT_OPTIONS.quality}`));
-    assert.match(stdout, new RegExp(`default: ${DEFAULT_OPTIONS.format}`));
+    assert.match(stdout, new RegExp(`default: ${DEFAULT_OPTIONS.quality}\\b`));
+    assert.match(stdout, new RegExp(`default: ${DEFAULT_OPTIONS.format}\\b`));
+    assert.match(stdout, new RegExp(`default: ${DEFAULT_OPTIONS.concurrency}\\b`));
   });
 
   it("prints usage when given no arguments at all", () => {

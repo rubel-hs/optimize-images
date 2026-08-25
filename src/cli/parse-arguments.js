@@ -1,6 +1,8 @@
 "use strict";
 
 const {
+  CONCURRENCY_MAX,
+  CONCURRENCY_MIN,
   DEFAULT_OPTIONS,
   QUALITY_MAX,
   QUALITY_MIN,
@@ -22,6 +24,8 @@ const FLAGS = {
   "--format": readFormat,
   "-s": readSize,
   "--size": readSize,
+  "-j": readConcurrency,
+  "--concurrency": readConcurrency,
   "-d": () => ({ deleteOriginal: true }),
   "--delete-original": () => ({ deleteOriginal: true }),
 };
@@ -36,6 +40,20 @@ function readQuality(next, flag) {
     );
   }
   return { quality };
+}
+
+function readConcurrency(next, flag) {
+  const concurrency = parseInt(next(flag), 10);
+  if (
+    isNaN(concurrency) ||
+    concurrency < CONCURRENCY_MIN ||
+    concurrency > CONCURRENCY_MAX
+  ) {
+    throw new UserError(
+      `Concurrency must be a number between ${CONCURRENCY_MIN}-${CONCURRENCY_MAX}.`,
+    );
+  }
+  return { concurrency };
 }
 
 function readFormat(next, flag) {

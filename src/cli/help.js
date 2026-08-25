@@ -18,6 +18,7 @@ ${chalk.bold("Options:")}
   -q, --quality <${QUALITY_MIN}-${QUALITY_MAX}>   Image quality (default: ${DEFAULT_OPTIONS.quality})
   -f, --format <fmt>      Output format: ${listedFormats} (default: ${DEFAULT_OPTIONS.format})
   -s, --size <WxH>        Resize to width x height, e.g. 600x300
+  -j, --concurrency <n>   Images to encode at once (default: ${DEFAULT_OPTIONS.concurrency}, one per core)
   -d, --delete-original   Delete source file after converting to a different format
   -h, --help              Show this help
 
@@ -27,6 +28,7 @@ ${chalk.bold("Examples:")}
   oi ./images -f webp                  Convert all to WebP
   oi ./images -q 75 -f original        Quality 75, keep original formats
   oi ./images -q 90 -f png -s 800x600  Convert to PNG, resize to 800x600, quality 90
+  oi ./images -j 1                     Encode one at a time, leaving the machine free
 `);
 }
 

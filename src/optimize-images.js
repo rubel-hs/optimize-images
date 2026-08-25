@@ -5,6 +5,7 @@ const path = require("path");
 const { DEFAULT_OPTIONS } = require("./defaults");
 const { resolveOutputPath } = require("./formats");
 const { optimizeImage } = require("./optimize-image");
+const { runPool } = require("./run-pool");
 const { UserError } = require("./user-error");
 
 const noop = () => {};
@@ -44,7 +45,7 @@ function assertNoOutputCollisions(files, format) {
  */
 async function optimizeImages(files, options = {}, handlers = {}) {
   const { onProgress = noop, onFailure = noop } = handlers;
-  const { format } = { ...DEFAULT_OPTIONS, ...options };
+  const { format, concurrency } = { ...DEFAULT_OPTIONS, ...options };
 
   assertNoOutputCollisions(files, format);
 
@@ -58,20 +59,33 @@ async function optimizeImages(files, options = {}, handlers = {}) {
     failures: [],
   };
 
-  for (const [index, file] of files.entries()) {
+  let completed = 0;
+
+  const outcomes = await runPool(files, concurrency, async (file) => {
+    let outcome;
+
     try {
-      const result = await optimizeImage(file, options);
-      summary.optimized++;
-      summary.originalSize += result.originalSize;
-      summary.newSize += result.newSize;
-      if (result.deleted) summary.deleted++;
+      outcome = { result: await optimizeImage(file, options) };
     } catch (error) {
-      summary.failed++;
-      summary.failures.push({ file, message: error.message });
+      outcome = { error };
       onFailure(file, error);
     }
 
-    onProgress(index + 1, files.length);
+    onProgress(++completed, files.length);
+    return outcome;
+  });
+
+  for (const [index, { result, error }] of outcomes.entries()) {
+    if (error) {
+      summary.failed++;
+      summary.failures.push({ file: files[index], message: error.message });
+      continue;
+    }
+
+    summary.optimized++;
+    summary.originalSize += result.originalSize;
+    summary.newSize += result.newSize;
+    if (result.deleted) summary.deleted++;
   }
 
   return summary;

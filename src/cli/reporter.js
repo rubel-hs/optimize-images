@@ -29,6 +29,7 @@ function printRunHeader(targetPath, fileCount, options) {
       options.format === KEEP_ORIGINAL_FORMAT ? " (keep)" : ""
     }`,
   );
+  console.log(`  ${chalk.dim("Workers:")}  ${options.concurrency}`);
   if (options.size) {
     console.log(
       `  ${chalk.dim("Resize:")}   ${options.size.width}×${options.size.height}`,
