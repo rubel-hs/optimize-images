@@ -12,6 +12,7 @@ const {
   createTempDir,
   listFiles,
   sizeOf,
+  writeAnimation,
   writeBrokenImage,
   writeImage,
 } = require("./helpers/fixtures");
@@ -162,6 +163,120 @@ describe("optimizeImage failures", () => {
 
     const leftovers = listFiles(dir).filter((file) => file.endsWith(".oi_tmp"));
     assert.deepEqual(leftovers, []);
+  });
+});
+
+describe("optimizeImage when re-encoding would cost bytes", () => {
+  it("keeps the original file rather than a bigger rewrite of it", async () => {
+    const dir = createTempDir();
+    const file = await writeImage(dir, "tiny.png", { width: 16, height: 16 });
+    const before = fs.readFileSync(file);
+
+    const result = await optimizeImage(file, { quality: 100 });
+
+    assert.equal(result.newSize, before.length);
+    assert.deepEqual(fs.readFileSync(file), before);
+  });
+
+  it("leaves no temporary file behind when it keeps the original", async () => {
+    const dir = createTempDir();
+    const file = await writeImage(dir, "tiny.png", { width: 16, height: 16 });
+
+    await optimizeImage(file, { quality: 100 });
+
+    assert.deepEqual(listFiles(dir), ["tiny.png"]);
+  });
+
+  it("still resizes, even when the smaller image costs more bytes", async () => {
+    const dir = createTempDir();
+    const file = await writeImage(dir, "small.jpg", { width: 24, height: 24 });
+    const before = sizeOf(file);
+
+    const result = await optimizeImage(file, {
+      quality: 100,
+      size: { width: 20, height: 20 },
+    });
+
+    const after = await sharp(file).metadata();
+    assert.deepEqual([after.width, after.height], [20, 20]);
+    assert.ok(result.newSize > before, "fixture stopped growing — pick another");
+  });
+
+  it("still honours a format the user asked for, bigger or not", async () => {
+    const dir = createTempDir();
+    const file = await writeImage(dir, "tiny.png", { width: 16, height: 16 });
+
+    const result = await optimizeImage(file, { quality: 100, format: "webp" });
+
+    assert.equal(result.outputPath, path.join(dir, "tiny.webp"));
+    assert.deepEqual(listFiles(dir), ["tiny.png", "tiny.webp"]);
+  });
+});
+
+describe("optimizeImage and EXIF orientation", () => {
+  /** Orientation 6 means "stored landscape, display rotated a quarter turn". */
+  async function writeSidewaysPhoto(dir, fileName) {
+    const filePath = path.join(dir, fileName);
+    await sharp({
+      create: { width: 200, height: 100, channels: 3, background: "red" },
+    })
+      .withMetadata({ orientation: 6 })
+      .jpeg()
+      .toFile(filePath);
+    return filePath;
+  }
+
+  it("resizes the photo as the camera meant it to be seen", async () => {
+    const dir = createTempDir();
+    const file = await writeSidewaysPhoto(dir, "portrait.jpg");
+
+    await optimizeImage(file, { size: { width: 150, height: 150 } });
+
+    const after = await sharp(file).metadata();
+    assert.deepEqual([after.width, after.height], [75, 150]);
+  });
+
+  it("leaves the pixels upright rather than relying on the tag", async () => {
+    const dir = createTempDir();
+    const file = await writeSidewaysPhoto(dir, "portrait.jpg");
+
+    await optimizeImage(file, {});
+
+    const after = await sharp(file).metadata();
+    assert.deepEqual([after.width, after.height], [100, 200]);
+  });
+});
+
+describe("optimizeImage and animations", () => {
+  const framesIn = async (filePath) =>
+    (await sharp(filePath, { animated: true }).metadata()).pages;
+
+  it("keeps every frame of an animation it re-encodes", async () => {
+    const dir = createTempDir();
+    const file = await writeAnimation(dir, "spinner.gif", { frames: 4 });
+
+    await optimizeImage(file, {});
+
+    assert.equal(await framesIn(file), 4);
+  });
+
+  it("keeps every frame when converting to another animated format", async () => {
+    const dir = createTempDir();
+    const file = await writeAnimation(dir, "spinner.gif", { frames: 4 });
+
+    await optimizeImage(file, { format: "webp" });
+
+    assert.equal(await framesIn(path.join(dir, "spinner.webp")), 4);
+  });
+
+  it("takes the first frame, not a tall strip, for a still format", async () => {
+    const dir = createTempDir();
+    const file = await writeAnimation(dir, "spinner.gif", { frames: 4, size: 64 });
+
+    await optimizeImage(file, { format: "jpg" });
+
+    const still = await sharp(path.join(dir, "spinner.jpg")).metadata();
+    assert.deepEqual([still.width, still.height], [64, 64]);
   });
 });
 

@@ -20,6 +20,7 @@ exactly how many bytes you saved. Powered by [sharp](https://sharp.pixelplumbing
   Images:   24
   Quality:  80
   Format:   original (keep)
+  Workers:  8
 
   ████████████████████ 100% | 24/24 files
 
@@ -33,12 +34,16 @@ exactly how many bytes you saved. Powered by [sharp](https://sharp.pixelplumbing
 ## ✨ Features
 
 - 📦 **Bulk by default** — point it at a folder, it walks every subfolder too
+- 🧵 **Uses the whole machine** — encodes one image per core, not one at a time
 - 🎚️ **Quality dial** — one flag, `1` to `100`, sensible `80` default
 - 🔄 **Format conversion** — JPG, PNG, WebP, AVIF, TIFF, GIF
 - 📐 **Smart resize** — fits inside your box and never upscales a small image
 - 📊 **Live progress bar** — plus a before/after savings report at the end
 - 🛡️ **Safe writes** — each file lands in a temp file and is renamed, so a
   cancelled run never leaves a half-written image where your original was
+- 🙃 **Upright photos** — bakes in the camera's rotation instead of dropping it
+- 🎞️ **Keeps animations** — animated GIF and WebP keep every frame
+- ⚖️ **Never grows a file** — if re-encoding would cost bytes, the original stays
 - 🧹 **Optional cleanup** — drop the source files after converting
 - 💪 **Keeps going** — one broken image is reported and skipped, not fatal
 - 🚀 **mozjpeg encoding** — smaller JPEGs than stock at the same quality

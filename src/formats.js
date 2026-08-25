@@ -8,6 +8,10 @@ const path = require("path");
  * Adding a format means adding one entry here — the CLI's `--format` validation,
  * the file discovery glob, the extension lookup and the sharp encoder call are
  * all derived from this object.
+ *
+ * `animated` marks the formats that can hold more than one frame. Reading a
+ * source as animated only pays off if the target can store the frames; do it
+ * for a still target and every frame lands in one tall strip instead.
  */
 const FORMATS = {
   jpg: {
@@ -24,6 +28,7 @@ const FORMATS = {
   webp: {
     outputExtension: ".webp",
     inputExtensions: [".webp"],
+    animated: true,
     encode: (pipeline, quality) => pipeline.webp({ quality }),
   },
   avif: {
@@ -39,6 +44,7 @@ const FORMATS = {
   gif: {
     outputExtension: ".gif",
     inputExtensions: [".gif"],
+    animated: true,
     encode: (pipeline) => pipeline.gif(),
   },
 };
@@ -111,6 +117,11 @@ function resolveOutputPath(filePath, requestedFormat) {
   );
 }
 
+/** Whether a format can store more than one frame. */
+function supportsAnimation(format) {
+  return Boolean(FORMATS[format]?.animated);
+}
+
 function encodeAs(pipeline, format, quality) {
   const encode = (FORMATS[format] || FORMATS[FALLBACK_FORMAT]).encode;
   return encode(pipeline, quality);
@@ -126,4 +137,5 @@ module.exports = {
   normalizeFormatName,
   resolveOutputFormat,
   resolveOutputPath,
+  supportsAnimation,
 };

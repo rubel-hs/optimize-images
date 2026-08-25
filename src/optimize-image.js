@@ -6,7 +6,12 @@ const path = require("path");
 const sharp = require("sharp");
 
 const { DEFAULT_OPTIONS } = require("./defaults");
-const { encodeAs, resolveOutputFormat, resolveOutputPath } = require("./formats");
+const {
+  encodeAs,
+  resolveOutputFormat,
+  resolveOutputPath,
+  supportsAnimation,
+} = require("./formats");
 
 /** Written first, then renamed, so a cancelled run never truncates an image. */
 const TEMP_SUFFIX = ".oi_tmp";
@@ -38,7 +43,12 @@ async function optimizeImage(filePath, options = {}) {
   const outputPath = resolveOutputPath(filePath, format);
   const originalSize = (await fs.stat(filePath)).size;
 
-  let pipeline = sharp(filePath);
+  // A phone writes its photos landscape and tags them with the quarter turn the
+  // viewer should apply. Re-encoding drops that tag, so bake the turn into the
+  // pixels first or every portrait photo comes out on its side.
+  let pipeline = sharp(filePath, {
+    animated: supportsAnimation(outputFormat),
+  }).autoOrient();
 
   if (size) {
     pipeline = pipeline.resize(size.width, size.height, {
@@ -48,18 +58,32 @@ async function optimizeImage(filePath, options = {}) {
   }
 
   const tempPath = temporaryPathFor(outputPath);
+  const replacesOriginal = path.resolve(outputPath) === path.resolve(filePath);
+  let newSize;
 
   try {
     await encodeAs(pipeline, outputFormat, quality).toFile(tempPath);
+    newSize = (await fs.stat(tempPath)).size;
+
+    // An already-tight image can come back bigger than it went in. Overwriting
+    // the source with that is a strictly worse file, so keep what we had —
+    // unless the caller asked for dimensions we would then be ignoring.
+    if (replacesOriginal && !size && newSize >= originalSize) {
+      await fs.rm(tempPath, { force: true });
+      return {
+        originalSize,
+        newSize: originalSize,
+        outputPath,
+        deleted: false,
+      };
+    }
+
     await fs.rename(tempPath, outputPath);
   } catch (error) {
     await fs.rm(tempPath, { force: true });
     throw error;
   }
 
-  const newSize = (await fs.stat(outputPath)).size;
-  const replacesOriginal =
-    path.resolve(outputPath) === path.resolve(filePath);
   const deleted = Boolean(deleteOriginal) && !replacesOriginal;
 
   if (deleted) await fs.unlink(filePath);
