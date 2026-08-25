@@ -113,6 +113,43 @@ describe("optimizeImages", () => {
     assert.match(seen[0][1], /unsupported image format/i);
   });
 
+  it("lets a conversion overwrite a previous run's output", async () => {
+    const dir = createTempDir();
+    const jpg = await writeImage(dir, "logo.jpg", { width: 200, height: 150, seed: 1 });
+    const webp = await writeImage(dir, "logo.webp", { width: 200, height: 150, seed: 2 });
+
+    const summary = await optimizeImages([jpg, webp], { format: "webp" });
+
+    assert.equal(summary.total, 2);
+    assert.equal(summary.optimized, 1);
+    assert.equal(summary.skipped, 1);
+    assert.equal(summary.failed, 0);
+    assert.deepEqual(listFiles(dir), ["logo.jpg", "logo.webp"]);
+  });
+
+  it("counts progress against the files it will actually touch", async () => {
+    const dir = createTempDir();
+    const jpg = await writeImage(dir, "logo.jpg");
+    const webp = await writeImage(dir, "logo.webp");
+
+    const progress = [];
+    await optimizeImages([jpg, webp], { format: "webp" }, {
+      onProgress: (done, total) => progress.push([done, total]),
+    });
+
+    assert.deepEqual(progress, [[1, 1]]);
+  });
+
+  it("optimizes a file already in the target format when nothing contests it", async () => {
+    const dir = createTempDir();
+    const webp = await writeImage(dir, "solo.webp", { width: 200, height: 150 });
+
+    const summary = await optimizeImages([webp], { format: "webp", quality: 20 });
+
+    assert.equal(summary.optimized, 1);
+    assert.equal(summary.skipped, 0);
+  });
+
   it("refuses a run where two files would land on the same output path", async () => {
     const dir = createTempDir();
     const jpg = await writeImage(dir, "logo.jpg");
@@ -168,6 +205,7 @@ describe("optimizeImages", () => {
     assert.deepEqual(summary, {
       total: 0,
       optimized: 0,
+      skipped: 0,
       failed: 0,
       deleted: 0,
       originalSize: 0,

@@ -188,7 +188,8 @@ src/
   defaults.js                default options and the quality range
   find-image-files.js        a path in, absolute image paths out
   optimize-image.js          one file: resize, encode, atomic write, cleanup
-  optimize-images.js         many files: loop, tally, survive failures
+  optimize-images.js         many files: plan, spread over workers, tally
+  run-pool.js                runs N jobs at a time, results in input order
   format-bytes.js            1536 -> "1.5 KB"
   user-error.js              problems the user can fix
   cli/
@@ -196,6 +197,7 @@ src/
     parse-arguments.js       argv -> options
     help.js                  the --help screen
     reporter.js              every line the CLI prints
+    tune-runtime.js          sizes the thread pool before sharp loads
 test/                        one file per module, plus end-to-end CLI tests
 ```
 

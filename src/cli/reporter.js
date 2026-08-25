@@ -60,7 +60,7 @@ function printFileFailure(file, error) {
   );
 }
 
-function printSummary(summary) {
+function printSummary(summary, format) {
   const saved = summary.originalSize - summary.newSize;
   const savedPercent =
     summary.originalSize > 0
@@ -72,6 +72,12 @@ function printSummary(summary) {
     console.log(chalk.yellow(`  ${summary.failed} file(s) had errors.`));
   }
   console.log(`  ${chalk.green("✓")} ${summary.optimized} image(s) optimized`);
+  if (summary.skipped > 0) {
+    console.log(
+      `  ${chalk.dim("Left alone:")} ${summary.skipped} file(s) already ${format}, ` +
+        `about to be replaced by a conversion`,
+    );
+  }
   if (summary.deleted > 0) {
     console.log(`  ${chalk.dim("Deleted:")} ${summary.deleted} source file(s)`);
   }

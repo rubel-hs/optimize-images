@@ -86,6 +86,20 @@ describe("oi on a real folder", () => {
     assert.deepEqual(listFiles(dir), ["a.webp"]);
   });
 
+  it("survives running the same conversion a second time", async () => {
+    const dir = createTempDir();
+    await writeImage(dir, "a.jpg", { width: 200, height: 150, seed: 1 });
+    await writeImage(dir, "b.jpg", { width: 200, height: 150, seed: 2 });
+
+    runCli(dir, "-f", "webp");
+    const { status, stdout } = runCli(dir, "-f", "webp");
+
+    assert.equal(status, 0);
+    assert.match(stdout, /2 image\(s\) optimized/);
+    assert.match(stdout, /2 .*already .*webp/i);
+    assert.deepEqual(listFiles(dir), ["a.jpg", "a.webp", "b.jpg", "b.webp"]);
+  });
+
   it("reports a broken file but still exits successfully", async () => {
     const dir = createTempDir();
     await writeImage(dir, "good.jpg");
