@@ -1,6 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 const { after, describe, it } = require("node:test");
@@ -143,10 +144,45 @@ describe("optimizeImage failures", () => {
     assert.equal(sizeOf(file), before);
   });
 
+  it("removes its temporary file when the rename fails", async () => {
+    const dir = createTempDir();
+    const file = await writeImage(dir, "logo.jpg");
+    fs.mkdirSync(path.join(dir, "logo.webp"));
+
+    await assert.rejects(optimizeImage(file, { format: "webp" }));
+
+    const leftovers = listFiles(dir).filter((name) => name.endsWith(".oi_tmp"));
+    assert.deepEqual(leftovers, []);
+  });
+
   it("leaves no temporary file behind", async () => {
     const dir = createTempDir();
     writeBrokenImage(dir, "broken.png");
     await assert.rejects(optimizeImage(path.join(dir, "broken.png"), {}));
+
+    const leftovers = listFiles(dir).filter((file) => file.endsWith(".oi_tmp"));
+    assert.deepEqual(leftovers, []);
+  });
+});
+
+describe("optimizeImage running concurrently", () => {
+  it("does not let two calls share one temporary file", async () => {
+    const dir = createTempDir();
+    const jpg = await writeImage(dir, "same.jpg", { width: 300, height: 220, seed: 1 });
+    const png = await writeImage(dir, "same.png", { width: 300, height: 220, seed: 2 });
+
+    const results = await Promise.allSettled([
+      optimizeImage(jpg, { format: "webp" }),
+      optimizeImage(png, { format: "webp" }),
+    ]);
+
+    assert.deepEqual(
+      results.map((result) => result.reason?.message ?? result.status),
+      ["fulfilled", "fulfilled"],
+    );
+
+    const written = await sharp(path.join(dir, "same.webp")).metadata();
+    assert.equal(written.format, "webp");
 
     const leftovers = listFiles(dir).filter((file) => file.endsWith(".oi_tmp"));
     assert.deepEqual(leftovers, []);

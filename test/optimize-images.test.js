@@ -5,6 +5,7 @@ const path = require("path");
 const { after, describe, it } = require("node:test");
 
 const { optimizeImages } = require("../src/optimize-images");
+const { UserError } = require("../src/user-error");
 const {
   cleanupFixtures,
   createTempDir,
@@ -110,6 +111,20 @@ describe("optimizeImages", () => {
     assert.equal(seen.length, 1);
     assert.equal(seen[0][0], "broken.png");
     assert.match(seen[0][1], /unsupported image format/i);
+  });
+
+  it("refuses a run where two files would land on the same output path", async () => {
+    const dir = createTempDir();
+    const jpg = await writeImage(dir, "logo.jpg");
+    const png = await writeImage(dir, "logo.png");
+
+    await assert.rejects(
+      () => optimizeImages([jpg, png], { format: "webp" }),
+      (error) =>
+        error instanceof UserError && error.message.includes("logo.webp"),
+    );
+
+    assert.deepEqual(listFiles(dir), ["logo.jpg", "logo.png"]);
   });
 
   it("handles an empty list without touching the callbacks", async () => {
