@@ -82,6 +82,10 @@ describe("parseArguments options", () => {
     assert.equal(parse("./images", "--concurrency", "12").concurrency, 12);
   });
 
+  it("accepts a worker count a large server could actually use", () => {
+    assert.equal(parse("./images", "-j", "128").concurrency, 128);
+  });
+
   it("lets a later flag win over an earlier one", () => {
     assert.equal(parse("./images", "-q", "30", "-q", "90").quality, 90);
   });

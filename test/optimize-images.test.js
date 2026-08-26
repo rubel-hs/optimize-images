@@ -1,6 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const os = require("os");
 const path = require("path");
 const { after, describe, it } = require("node:test");
 
@@ -164,7 +165,13 @@ describe("optimizeImages", () => {
     assert.deepEqual(listFiles(dir), ["logo.jpg", "logo.png"]);
   });
 
-  it("finishes sooner with a wider concurrency", async () => {
+  const CORES = os.availableParallelism();
+
+  it("finishes sooner with a wider concurrency", {
+    // On a single-core box — a pinned CI container, a small VM — there is no
+    // second core to spread onto and the claim is simply not true.
+    skip: CORES > 1 ? false : `needs more than one core, this machine offers ${CORES}`,
+  }, async () => {
     const corpus = async () => {
       const dir = createTempDir();
       return Promise.all(
@@ -185,12 +192,14 @@ describe("optimizeImages", () => {
       return Number(process.hrtime.bigint() - started);
     };
 
+    const wide = Math.min(4, CORES);
     const serial = await time(await corpus(), 1);
-    const parallel = await time(await corpus(), 4);
+    const parallel = await time(await corpus(), wide);
 
     assert.ok(
       parallel < serial * 0.8,
-      `expected 4 at a time to beat 1 at a time, got ${parallel / 1e6}ms vs ${serial / 1e6}ms`,
+      `expected ${wide} at a time to beat 1 at a time on ${CORES} cores, ` +
+        `got ${parallel / 1e6}ms vs ${serial / 1e6}ms`,
     );
   });
 
