@@ -47,7 +47,7 @@ exactly how many bytes you saved. Powered by [sharp](https://sharp.pixelplumbing
 - 🧹 **Optional cleanup** — drop the source files after converting
 - 💪 **Keeps going** — one broken image is reported and skipped, not fatal
 - 🚀 **mozjpeg encoding** — smaller JPEGs than stock at the same quality
-- 🪶 **Tiny install** — 9.2 kB packed, sharp plus three small helpers
+- 🪶 **Tiny install** — 15.5 kB packed, sharp plus three small helpers
 - 🧩 **Usable as a library** — `require("oi-optimize-images")` for the same engine without the CLI
 
 ---
@@ -151,8 +151,18 @@ oi photo.png -f webp
   actually differs from the input path, so it can't delete your only copy.
 - **`-s` never enlarges.** It uses fit-inside with no upscaling, so an image
   already smaller than your box is left at its own size.
+- **Two files can't share one output.** If `logo.jpg` and `logo.png` would both
+  become `logo.webp`, the run stops before writing anything and tells you which
+  two clash. Convert them separately.
+- **Re-running a conversion is safe.** A second `oi ./images -f webp` skips the
+  `.webp` files the first run made, since a source file is about to replace them
+  anyway. The summary says how many were left alone.
 - **Re-running costs quality.** Each pass re-encodes, so compressing an already
-  compressed file again degrades it further.
+  compressed file again degrades it further. A rewrite that would come out
+  *bigger* is thrown away and the original kept — but that is a size guard, not
+  a quality one.
+- **`-j` reads the cores you actually have.** Inside a container limited to one
+  CPU it uses one worker rather than the host's full count.
 
 **Supported inputs:** `.jpg` `.jpeg` `.png` `.webp` `.avif` `.tiff` `.tif` `.gif`
 
@@ -189,7 +199,7 @@ bin/oi.js                    shebang launcher, hands off to the CLI
 src/
   index.js                   public API — the root export
   formats.js                 every supported format: extensions + sharp encoder
-  defaults.js                default options and the quality range
+  defaults.js                default options, quality and worker ranges
   find-image-files.js        a path in, absolute image paths out
   optimize-image.js          one file: resize, encode, atomic write, cleanup
   optimize-images.js         many files: plan, spread over workers, tally
@@ -221,6 +231,9 @@ rather than mocking it.
 ```bash
 npm test
 ```
+
+Every user-visible change goes in [CHANGELOG.md](./CHANGELOG.md) under
+`[Unreleased]`, and moves under a version heading at release time.
 
 ---
 
