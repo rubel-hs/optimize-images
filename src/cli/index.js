@@ -34,12 +34,17 @@ async function runCli(argv) {
 
     const bar = createProgressBar(files.length);
     const summary = await optimizeImages(files, options, {
-      onProgress: (done) => bar.update(done),
+      onProgress: (done, total) => {
+        // Files already sitting at another file's output path are dropped from
+        // the run, so the bar can have fewer steps than the folder has images.
+        bar.setTotal(total);
+        bar.update(done);
+      },
       onFailure: printFileFailure,
     });
     bar.stop();
 
-    printSummary(summary);
+    printSummary(summary, options.format);
   } catch (error) {
     if (error instanceof UserError) {
       printError(error.message);

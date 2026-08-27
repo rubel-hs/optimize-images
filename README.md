@@ -20,6 +20,7 @@ exactly how many bytes you saved. Powered by [sharp](https://sharp.pixelplumbing
   Images:   24
   Quality:  80
   Format:   original (keep)
+  Workers:  8
 
   ████████████████████ 100% | 24/24 files
 
@@ -33,16 +34,20 @@ exactly how many bytes you saved. Powered by [sharp](https://sharp.pixelplumbing
 ## ✨ Features
 
 - 📦 **Bulk by default** — point it at a folder, it walks every subfolder too
+- 🧵 **Uses the whole machine** — encodes one image per core, not one at a time
 - 🎚️ **Quality dial** — one flag, `1` to `100`, sensible `80` default
 - 🔄 **Format conversion** — JPG, PNG, WebP, AVIF, TIFF, GIF
 - 📐 **Smart resize** — fits inside your box and never upscales a small image
 - 📊 **Live progress bar** — plus a before/after savings report at the end
 - 🛡️ **Safe writes** — each file lands in a temp file and is renamed, so a
   cancelled run never leaves a half-written image where your original was
+- 🙃 **Upright photos** — bakes in the camera's rotation instead of dropping it
+- 🎞️ **Keeps animations** — animated GIF and WebP keep every frame
+- ⚖️ **Never grows a file** — if re-encoding would cost bytes, the original stays
 - 🧹 **Optional cleanup** — drop the source files after converting
 - 💪 **Keeps going** — one broken image is reported and skipped, not fatal
 - 🚀 **mozjpeg encoding** — smaller JPEGs than stock at the same quality
-- 🪶 **Tiny install** — 9.2 kB packed, sharp plus three small helpers
+- 🪶 **Tiny install** — 15.5 kB packed, sharp plus three small helpers
 - 🧩 **Usable as a library** — `require("oi-optimize-images")` for the same engine without the CLI
 
 ---
@@ -122,6 +127,7 @@ oi photo.png -f webp
 | `-q, --quality <1-100>` | 🎚️ Output quality | `80` |
 | `-f, --format <fmt>` | 🔄 `original`, `jpg`, `png`, `webp`, `avif`, `tiff`, `gif` | `original` |
 | `-s, --size <WxH>` | 📐 Fit inside these dimensions, e.g. `800x600` | none |
+| `-j, --concurrency <n>` | 🧵 Images encoded at once | one per core |
 | `-d, --delete-original` | 🧹 Delete the source after converting to a new format | off |
 | `-h, --help` | 💬 Show help | |
 
@@ -145,8 +151,18 @@ oi photo.png -f webp
   actually differs from the input path, so it can't delete your only copy.
 - **`-s` never enlarges.** It uses fit-inside with no upscaling, so an image
   already smaller than your box is left at its own size.
+- **Two files can't share one output.** If `logo.jpg` and `logo.png` would both
+  become `logo.webp`, the run stops before writing anything and tells you which
+  two clash. Convert them separately.
+- **Re-running a conversion is safe.** A second `oi ./images -f webp` skips the
+  `.webp` files the first run made, since a source file is about to replace them
+  anyway. The summary says how many were left alone.
 - **Re-running costs quality.** Each pass re-encodes, so compressing an already
-  compressed file again degrades it further.
+  compressed file again degrades it further. A rewrite that would come out
+  *bigger* is thrown away and the original kept — but that is a size guard, not
+  a quality one.
+- **`-j` reads the cores you actually have.** Inside a container limited to one
+  CPU it uses one worker rather than the host's full count.
 
 **Supported inputs:** `.jpg` `.jpeg` `.png` `.webp` `.avif` `.tiff` `.tif` `.gif`
 
@@ -166,9 +182,13 @@ console.log(`Saved ${formatBytes(summary.originalSize - summary.newSize)}`);
 ```
 
 `optimizeImages` takes the same options as the flags (`quality`, `format`,
-`size: { width, height }`, `deleteOriginal`) and an optional
+`size: { width, height }`, `deleteOriginal`, `concurrency`) and an optional
 `{ onProgress, onFailure }` pair of callbacks. It never prints and never exits —
 bad input throws a `UserError`.
+
+`concurrency` defaults to one image per core. `QUALITY_MIN`/`QUALITY_MAX` and
+`CONCURRENCY_MIN`/`CONCURRENCY_MAX` are exported if you want to validate input
+before handing it over.
 
 ---
 
@@ -179,10 +199,11 @@ bin/oi.js                    shebang launcher, hands off to the CLI
 src/
   index.js                   public API — the root export
   formats.js                 every supported format: extensions + sharp encoder
-  defaults.js                default options and the quality range
+  defaults.js                default options, quality and worker ranges
   find-image-files.js        a path in, absolute image paths out
   optimize-image.js          one file: resize, encode, atomic write, cleanup
-  optimize-images.js         many files: loop, tally, survive failures
+  optimize-images.js         many files: plan, spread over workers, tally
+  run-pool.js                runs N jobs at a time, results in input order
   format-bytes.js            1536 -> "1.5 KB"
   user-error.js              problems the user can fix
   cli/
@@ -190,6 +211,7 @@ src/
     parse-arguments.js       argv -> options
     help.js                  the --help screen
     reporter.js              every line the CLI prints
+    tune-runtime.js          sizes the thread pool before sharp loads
 test/                        one file per module, plus end-to-end CLI tests
 ```
 
@@ -209,6 +231,9 @@ rather than mocking it.
 ```bash
 npm test
 ```
+
+Every user-visible change goes in [CHANGELOG.md](./CHANGELOG.md) under
+`[Unreleased]`, and moves under a version heading at release time.
 
 ---
 

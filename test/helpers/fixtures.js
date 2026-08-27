@@ -51,6 +51,27 @@ async function writeImage(dir, fileName, { width = 64, height = 48, seed = 1, fo
   return filePath;
 }
 
+/**
+ * An animated image, written as one tall strip that `raw.pageHeight` splits back
+ * into frames. Noisy frames, because the encoder collapses identical ones.
+ */
+async function writeAnimation(dir, fileName, { frames = 4, size = 64 } = {}) {
+  const filePath = path.join(dir, fileName);
+  const strip = Buffer.concat(
+    Array.from({ length: frames }, (_, index) =>
+      noisePixels(size, size * 4 / 3, index + 1),
+    ),
+  );
+
+  await sharp(strip, {
+    raw: { width: size, height: size * frames, channels: 4, pageHeight: size },
+  })
+    .toFormat(path.extname(fileName).slice(1).toLowerCase())
+    .toFile(filePath);
+
+  return filePath;
+}
+
 function writeBrokenImage(dir, fileName = "broken.png") {
   const filePath = path.join(dir, fileName);
   fs.writeFileSync(filePath, "this is not an image");
@@ -75,6 +96,7 @@ module.exports = {
   createTempDir,
   listFiles,
   sizeOf,
+  writeAnimation,
   writeBrokenImage,
   writeImage,
 };
