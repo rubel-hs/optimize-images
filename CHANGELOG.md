@@ -29,10 +29,10 @@ disk — see [Upgrading](#upgrading-from-200) below.
 ### Changed
 
 - **Images are encoded concurrently.** 32 photos at 1600×1200 converted from
-  JPEG to WebP went from 21.8s to 4.8s on an 8-core machine, producing
-  byte-identical output. Raising the encoder's own thread count does not help
-  and was measured at 1.01× — the work has to spread across images, not within
-  one.
+  JPEG to WebP went from 14.6s to 5.0s on an 8-core machine — roughly 2.9× —
+  producing byte-identical output. Raising the encoder's own thread count
+  instead does not help, measured at 1.01×: the work has to spread across
+  images, not within one.
 - `oi` sizes Node's thread pool to the machine before sharp loads. Without this
   the pool holds four threads and caps how many images can encode at once,
   whatever `-j` asks for.

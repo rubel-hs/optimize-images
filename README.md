@@ -112,6 +112,12 @@ oi ./images -f webp -d
 oi ./images -f webp -s 400x400 -q 75
 ```
 
+**Leave some cores free for everything else:**
+
+```bash
+oi ./images -j 2
+```
+
 **Just one file:**
 
 ```bash
@@ -139,6 +145,23 @@ oi photo.png -f webp
 | `75-85` | 🌐 Web images — the sweet spot |
 | `60-75` | ⚡ Thumbnails, previews, speed-first pages |
 | `< 60` | 🪶 When bytes matter far more than looks |
+
+---
+
+## ⚡ Speed
+
+Several images encode at once. On an 8-core laptop, 32 photos at 1600×1200
+converted to WebP:
+
+| `-j 1` | `-j 2` | `-j 4` | `-j 8` *(default here)* |
+|--------|--------|--------|--------------------------|
+| 14.6s | 8.7s | 6.2s | 5.0s |
+
+Same bytes out whichever you pick — concurrency only changes how long you wait.
+
+The default reads the cores actually available, so a 2-core VM uses two, and a
+container capped at one CPU uses one rather than reaching for the host's total.
+Turning `-j` *down* is the useful direction, for when you want the machine back.
 
 ---
 
