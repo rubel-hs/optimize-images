@@ -8,10 +8,19 @@
  *   const files = await findImageFiles("./images");
  *   const summary = await optimizeImages(files, { quality: 70, format: "webp" });
  *
+ * Encoding runs one image per core unless `concurrency` says otherwise; the
+ * bounds it is checked against are exported alongside the quality ones.
+ *
  * The CLI in `src/cli/` is one consumer of this API, not the other way round.
  */
 
-const { DEFAULT_OPTIONS, QUALITY_MAX, QUALITY_MIN } = require("./defaults");
+const {
+  CONCURRENCY_MAX,
+  CONCURRENCY_MIN,
+  DEFAULT_OPTIONS,
+  QUALITY_MAX,
+  QUALITY_MIN,
+} = require("./defaults");
 const { findImageFiles } = require("./find-image-files");
 const { formatBytes } = require("./format-bytes");
 const {
@@ -24,6 +33,8 @@ const { optimizeImages } = require("./optimize-images");
 const { UserError } = require("./user-error");
 
 module.exports = {
+  CONCURRENCY_MAX,
+  CONCURRENCY_MIN,
   DEFAULT_OPTIONS,
   FORMAT_NAMES,
   KEEP_ORIGINAL_FORMAT,

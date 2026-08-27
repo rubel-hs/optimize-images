@@ -172,9 +172,13 @@ console.log(`Saved ${formatBytes(summary.originalSize - summary.newSize)}`);
 ```
 
 `optimizeImages` takes the same options as the flags (`quality`, `format`,
-`size: { width, height }`, `deleteOriginal`) and an optional
+`size: { width, height }`, `deleteOriginal`, `concurrency`) and an optional
 `{ onProgress, onFailure }` pair of callbacks. It never prints and never exits —
 bad input throws a `UserError`.
+
+`concurrency` defaults to one image per core. `QUALITY_MIN`/`QUALITY_MAX` and
+`CONCURRENCY_MIN`/`CONCURRENCY_MAX` are exported if you want to validate input
+before handing it over.
 
 ---
 
