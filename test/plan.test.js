@@ -120,6 +120,18 @@ test("duplicate inputs are planned once and counted as skipped", () => {
   assert.equal(skipped, 1);
 });
 
+test("out-of-place: a source already in the target format is skipped, not a collision", () => {
+  const { jobs, skipped } = planJobs([inRoot("logo.jpg"), inRoot("logo.webp")], {
+    ...defaults,
+    format: "webp",
+  });
+  assert.equal(skipped, 1);
+  assert.deepEqual(
+    jobs.map((job) => [job.source, job.outputPath]),
+    [[inRoot("logo.jpg"), path.join(OUT, "logo.webp")]],
+  );
+});
+
 test("an output dir that overlaps the sources is rejected", () => {
   assert.throws(
     () => planJobs([inRoot("a.jpg")], { ...defaults, output: ROOT }),

@@ -202,9 +202,11 @@ Turning `-j` *down* is the useful direction, for when you want the machine back.
 - **Two files can't share one output.** If `logo.jpg` and `logo.png` would both
   become `logo.webp`, the run stops before writing anything and tells you which
   two clash. Convert them separately.
-- **Re-running a conversion is safe.** A second `oi ./images -f webp` skips the
-  `.webp` files the first run made, since a source file is about to replace them
-  anyway. The summary says how many were left alone.
+- **A file already in the target format is skipped, not fought over.** If a
+  folder holds both `logo.jpg` and `logo.webp` and you convert it to webp, the
+  `.jpg` converts and the existing `.webp` is left alone rather than causing a
+  collision error — the same rule that makes a second `--in-place` run over
+  the same folder safe. The summary says how many were left alone.
 - **Re-running costs quality, with `--in-place`.** Each pass re-encodes, so
   compressing an already compressed file again degrades it further. A rewrite
   that would come out *bigger* is thrown away and the original kept — but that

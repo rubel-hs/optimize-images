@@ -48,9 +48,15 @@ function whenLargerAction(source, outputPath, outputFormat, { inPlace, size }) {
  * Turn discovered files into encode jobs with the output path decided.
  *
  * Collision rules, checked before any write:
- * 1. Two different sources mapping to one output path is an error.
- * 2. A source that already IS another job's output (in-place conversion with
- *    the converted file present) has its own job dropped and counted skipped.
+ * 1. Two sources that both still need converting to reach one output path is
+ *    an error.
+ * 2. Among sources sharing an output, a source already in the target format
+ *    has its own job dropped and counted skipped, as long as exactly one
+ *    other claimant is actually converting there — e.g. `logo.jpg` and
+ *    `logo.webp` converting to webp: the `.jpg` converts, the `.webp` is
+ *    left alone. In place, this is the common case of a source that already
+ *    IS another job's output; out of place it covers a folder that already
+ *    holds a same-format file alongside the one being converted.
  */
 function planJobs(files, options) {
   const { inputRoot, format, inPlace, size } = options;
@@ -98,16 +104,22 @@ function planJobs(files, options) {
   for (const [outputPath, claimants] of byOutput) {
     if (claimants.length === 1) continue;
 
-    const converting = claimants.filter((job) => job.source !== outputPath);
-    if (converting.length > 1) {
+    // A claimant already in the output's format isn't converting anything —
+    // it would just be copied there unchanged — so it doesn't count toward
+    // the "two sources fighting for one output" error.
+    const isConverting = (job) =>
+      resolveOutputFormat(job.source, KEEP_ORIGINAL_FORMAT) !== job.format;
+    const convertingCount = claimants.filter(isConverting).length;
+
+    if (convertingCount !== 1) {
       throw new UserError(
-        `"${path.basename(converting[0].source)}" and "${path.basename(converting[1].source)}" ` +
+        `"${path.basename(claimants[0].source)}" and "${path.basename(claimants[1].source)}" ` +
           `would both be written to ${outputPath}. Convert them separately.`,
       );
     }
 
     for (const job of claimants) {
-      if (job.source === outputPath) {
+      if (!isConverting(job)) {
         dropped.add(job);
         skipped++;
       }
