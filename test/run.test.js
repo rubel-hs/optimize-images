@@ -131,3 +131,25 @@ test("rejects inPlace combined with output", async () => {
 test("rejects a run without inputRoot unless inPlace", async () => {
   await assert.rejects(optimizeImages([], {}), UserError);
 });
+
+test("rejects an unsupported format with a UserError, not a crash", async () => {
+  const input = await inputFolder([["a.jpg", {}]]);
+
+  await assert.rejects(
+    optimizeImages(filesIn(input), { inputRoot: input, format: "bogus" }),
+    UserError,
+  );
+});
+
+test("format: undefined and format: null both fall back to the default", async () => {
+  const input = await inputFolder([["a.jpg", { width: 256, height: 256 }]]);
+
+  for (const format of [undefined, null]) {
+    const summary = await optimizeImages(filesIn(input), {
+      inputRoot: input,
+      format,
+      quality: 60,
+    });
+    assert.equal(summary.optimized + summary.copied, 1);
+  }
+});

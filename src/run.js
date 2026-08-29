@@ -4,6 +4,7 @@ const fs = require("fs/promises");
 
 const { DEFAULT_OPTIONS } = require("./defaults");
 const { encodeImage } = require("./encode");
+const { KEEP_ORIGINAL_FORMAT, normalizeFormatName, REQUESTABLE_FORMATS } = require("./formats");
 const { planJobs } = require("./plan");
 const { runPool } = require("./pool");
 const { UserError } = require("./errors");
@@ -33,6 +34,15 @@ async function prepareOutputDirs(outputRoot, outputDirs) {
 async function optimizeImages(files, options = {}, handlers = {}) {
   const { onProgress = noop, onFailure = noop } = handlers;
   const merged = { ...DEFAULT_OPTIONS, ...options };
+
+  if (merged.format === undefined || merged.format === null) {
+    merged.format = DEFAULT_OPTIONS.format;
+  }
+  if (merged.format !== KEEP_ORIGINAL_FORMAT && !normalizeFormatName(merged.format)) {
+    throw new UserError(
+      `Unsupported format "${merged.format}". Valid: ${REQUESTABLE_FORMATS.join(", ")}`,
+    );
+  }
 
   if (merged.inPlace && merged.output) {
     throw new UserError("--in-place cannot be combined with an output directory.");
