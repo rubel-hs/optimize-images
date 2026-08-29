@@ -31,8 +31,10 @@ const DEFAULT_OPTIONS = {
   quality: 80,
   format: KEEP_ORIGINAL_FORMAT,
   size: null,
-  deleteOriginal: false,
   concurrency: DEFAULT_CONCURRENCY,
+  inPlace: false,
+  output: null,
+  inputRoot: null,
 };
 
 module.exports = {
