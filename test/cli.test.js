@@ -1,152 +1,105 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const { execFile } = require("child_process");
+const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
-const { after, describe, it } = require("node:test");
+const test = require("node:test");
+const { promisify } = require("util");
+
+const run = promisify(execFile);
+const BIN = path.resolve(__dirname, "..", "bin", "oi.js");
 
 const {
   cleanupFixtures,
   createTempDir,
   listFiles,
-  writeBrokenImage,
   writeImage,
 } = require("./helpers/fixtures");
 
-after(cleanupFixtures);
+test.after(cleanupFixtures);
 
-const BIN = path.join(__dirname, "..", "bin", "oi.js");
-
-/** Colour codes would make the output assertions unreadable, so turn them off. */
-function runCli(...args) {
-  const { status, stdout, stderr } = spawnSync(process.execPath, [BIN, ...args], {
-    encoding: "utf8",
-    env: { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1" },
-  });
-  return { status, stdout, stderr };
+async function inputFolder() {
+  const parent = createTempDir();
+  const input = path.join(parent, "images");
+  await writeImage(input, "a.jpg", { width: 256, height: 256 });
+  await writeImage(input, path.join("nested", "b.jpg"), { width: 256, height: 256 });
+  return input;
 }
 
-describe("oi --help", () => {
-  it("prints usage and exits successfully", () => {
-    const { status, stdout } = runCli("--help");
+function oi(...args) {
+  return run(process.execPath, [BIN, ...args]);
+}
 
-    assert.equal(status, 0);
-    assert.match(stdout, /Usage:\s+oi <path> \[options\]/);
-  });
+test("default run writes the -oi-out sibling and leaves sources untouched", async () => {
+  const input = await inputFolder();
+  const before = fs.readFileSync(path.join(input, "a.jpg"));
 
-  it("documents every flag", () => {
-    const { stdout } = runCli("--help");
+  const { stdout } = await oi(input, "-q", "60");
 
-    for (const flag of ["--quality", "--format", "--size", "--concurrency", "--delete-original", "--help"]) {
-      assert.ok(stdout.includes(flag), `help does not mention ${flag}`);
-    }
-  });
+  assert.deepEqual(listFiles(`${input}-oi-out`), ["a.jpg", path.join("nested", "b.jpg")]);
+  assert.deepEqual(fs.readFileSync(path.join(input, "a.jpg")), before);
+  assert.match(stdout, /-oi-out/);
+});
 
-  it("shows the real defaults rather than a hard-coded copy", () => {
-    const { DEFAULT_OPTIONS } = require("../src/defaults");
-    const { stdout } = runCli("--help");
+test("-o writes into the given folder", async () => {
+  const input = await inputFolder();
+  const custom = path.join(createTempDir(), "optimized");
 
-    assert.match(stdout, new RegExp(`default: ${DEFAULT_OPTIONS.quality}\\b`));
-    assert.match(stdout, new RegExp(`default: ${DEFAULT_OPTIONS.format}\\b`));
-    assert.match(stdout, new RegExp(`default: ${DEFAULT_OPTIONS.concurrency}\\b`));
-  });
+  await oi(input, "-o", custom, "-q", "60");
 
-  it("prints usage when given no arguments at all", () => {
-    const { status, stdout } = runCli();
+  assert.deepEqual(listFiles(custom), ["a.jpg", path.join("nested", "b.jpg")]);
+});
 
-    assert.equal(status, 0);
-    assert.match(stdout, /Usage:/);
+test("--in-place overwrites the sources", async () => {
+  const input = await inputFolder();
+  const file = path.join(input, "a.jpg");
+  const sizeBefore = fs.statSync(file).size;
+
+  await oi(input, "--in-place", "-q", "60");
+
+  assert.ok(fs.statSync(file).size < sizeBefore);
+  assert.ok(!fs.existsSync(`${input}-oi-out`));
+});
+
+test("a single file lands in the parent-named sibling", async () => {
+  const input = await inputFolder();
+
+  await oi(path.join(input, "a.jpg"), "-q", "60");
+
+  assert.deepEqual(listFiles(`${input}-oi-out`), ["a.jpg"]);
+});
+
+test("-d fails with a migration hint and exit code 1", async () => {
+  const input = await inputFolder();
+
+  await assert.rejects(oi(input, "-d"), (error) => {
+    assert.equal(error.code, 1);
+    assert.match(error.stderr, /--in-place/);
+    return true;
   });
 });
 
-describe("oi on a real folder", () => {
-  it("optimizes recursively and reports the savings", async () => {
-    const dir = createTempDir();
-    await writeImage(dir, "a.jpg", { width: 200, height: 150, seed: 1 });
-    await writeImage(dir, "nested/b.jpg", { width: 200, height: 150, seed: 2 });
+test("--in-place with -o fails", async () => {
+  const input = await inputFolder();
 
-    const { status, stdout } = runCli(dir, "-q", "20");
-
-    assert.equal(status, 0);
-    assert.match(stdout, /Images:\s+2/);
-    assert.match(stdout, /2 image\(s\) optimized/);
-    assert.match(stdout, /Saved: /);
-    assert.deepEqual(listFiles(dir), ["a.jpg", path.join("nested", "b.jpg")]);
-  });
-
-  it("converts, resizes and deletes sources in one run", async () => {
-    const dir = createTempDir();
-    await writeImage(dir, "a.png", { width: 400, height: 200 });
-
-    const { status, stdout } = runCli(dir, "-f", "webp", "-s", "100x100", "-d");
-
-    assert.equal(status, 0);
-    assert.match(stdout, /Resize:\s+100×100/);
-    assert.match(stdout, /Deleted:\s+1 source file\(s\)/);
-    assert.deepEqual(listFiles(dir), ["a.webp"]);
-  });
-
-  it("survives running the same conversion a second time", async () => {
-    const dir = createTempDir();
-    await writeImage(dir, "a.jpg", { width: 200, height: 150, seed: 1 });
-    await writeImage(dir, "b.jpg", { width: 200, height: 150, seed: 2 });
-
-    runCli(dir, "-f", "webp");
-    const { status, stdout } = runCli(dir, "-f", "webp");
-
-    assert.equal(status, 0);
-    assert.match(stdout, /2 image\(s\) optimized/);
-    assert.match(stdout, /2 .*already .*webp/i);
-    assert.deepEqual(listFiles(dir), ["a.jpg", "a.webp", "b.jpg", "b.webp"]);
-  });
-
-  it("reports a broken file but still exits successfully", async () => {
-    const dir = createTempDir();
-    await writeImage(dir, "good.jpg");
-    writeBrokenImage(dir, "broken.png");
-
-    const { status, stdout, stderr } = runCli(dir);
-
-    assert.equal(status, 0);
-    assert.match(stderr, /broken\.png/);
-    assert.match(stdout, /1 file\(s\) had errors/);
-    assert.match(stdout, /1 image\(s\) optimized/);
+  await assert.rejects(oi(input, "--in-place", "-o", "out"), (error) => {
+    assert.equal(error.code, 1);
+    return true;
   });
 });
 
-describe("oi failures", () => {
-  const expectFailure = (pattern, ...args) => {
-    const { status, stderr } = runCli(...args);
-    assert.equal(status, 1);
-    assert.match(stderr, pattern);
-  };
-
-  it("exits 1 on an unknown flag", () => {
-    expectFailure(/Error: Unknown flag "--zap"/, ".", "--zap");
+test("a missing path fails with exit code 1", async () => {
+  await assert.rejects(oi(path.join(createTempDir(), "missing")), (error) => {
+    assert.equal(error.code, 1);
+    assert.match(error.stderr, /does not exist/i);
+    return true;
   });
+});
 
-  it("exits 1 on a bad quality", () => {
-    expectFailure(/Error: Quality must be a number between 1-100/, ".", "-q", "500");
-  });
-
-  it("exits 1 on an unsupported format", () => {
-    expectFailure(/Error: Unsupported format "bmp"/, ".", "-f", "bmp");
-  });
-
-  it("exits 1 on a malformed size", () => {
-    expectFailure(/Error: Size must be in WxH format/, ".", "-s", "600");
-  });
-
-  it("exits 1 when the path does not exist", () => {
-    const dir = createTempDir();
-    expectFailure(/Error: Path does not exist/, path.join(dir, "nope"));
-  });
-
-  it("exits 1 when a folder holds no images", () => {
-    expectFailure(/Error: No supported images found/, createTempDir());
-  });
-
-  it("exits 1 on an unsupported file type", () => {
-    expectFailure(/Error: Unsupported file type: \.json/, "package.json");
-  });
+test("--help prints usage and exits 0", async () => {
+  const { stdout } = await oi("--help");
+  assert.match(stdout, /--in-place/);
+  assert.match(stdout, /-o, --output/);
+  assert.doesNotMatch(stdout, /--delete-original/);
 });

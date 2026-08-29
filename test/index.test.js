@@ -21,4 +21,23 @@ describe("public API", () => {
 
     assert.deepEqual(missing, []);
   });
+
+  it("exports exactly the documented public API", () => {
+    assert.deepEqual(
+      Object.keys(oi).sort(),
+      [
+        "CONCURRENCY_MAX",
+        "CONCURRENCY_MIN",
+        "DEFAULT_OPTIONS",
+        "FORMAT_NAMES",
+        "KEEP_ORIGINAL_FORMAT",
+        "QUALITY_MAX",
+        "QUALITY_MIN",
+        "REQUESTABLE_FORMATS",
+        "UserError",
+        "discoverImages",
+        "optimizeImages",
+      ].sort(),
+    );
+  });
 });

@@ -2,10 +2,11 @@
 
 const path = require("path");
 
-const { findImageFiles } = require("../find-image-files");
-const { optimizeImages } = require("../optimize-images");
+const { discoverImages } = require("../discover");
+const { optimizeImages } = require("../run");
+const { resolveOutputRoot } = require("../plan");
 const { UserError } = require("../errors");
-const { parseArguments } = require("./parse-arguments");
+const { parseArguments } = require("./args");
 const { printHelp } = require("./help");
 const {
   createProgressBar,
@@ -20,23 +21,22 @@ const EXIT_FAILURE = 1;
 
 async function runCli(argv) {
   try {
-    const { path: inputPath, helpRequested, ...options } =
-      parseArguments(argv);
+    const { path: inputPath, helpRequested, ...options } = parseArguments(argv);
 
     if (helpRequested) {
       printHelp();
       return;
     }
 
-    const files = await findImageFiles(inputPath);
+    const { root, files } = await discoverImages(inputPath);
+    const outputRoot = resolveOutputRoot(root, options);
 
-    printRunHeader(path.resolve(inputPath), files.length, options);
+    printRunHeader(path.resolve(inputPath), files.length, options, outputRoot);
 
     const bar = createProgressBar(files.length);
-    const summary = await optimizeImages(files, options, {
+    const summary = await optimizeImages(files, { ...options, inputRoot: root }, {
       onProgress: (done, total) => {
-        // Files already sitting at another file's output path are dropped from
-        // the run, so the bar can have fewer steps than the folder has images.
+        // Planning can drop files, so the bar can have fewer steps than found.
         bar.setTotal(total);
         bar.update(done);
       },
@@ -44,7 +44,7 @@ async function runCli(argv) {
     });
     bar.stop();
 
-    printSummary(summary, options.format);
+    printSummary(summary);
   } catch (error) {
     if (error instanceof UserError) {
       printError(error.message);

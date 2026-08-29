@@ -6,14 +6,12 @@ const { describe, it } = require("node:test");
 
 const {
   FORMAT_NAMES,
-  IMAGE_GLOB_PATTERN,
   KEEP_ORIGINAL_FORMAT,
   REQUESTABLE_FORMATS,
   isSupportedImage,
   normalizeFormatName,
   outputExtensionFor,
   resolveOutputFormat,
-  resolveOutputPath,
 } = require("../src/formats");
 
 describe("normalizeFormatName", () => {
@@ -73,38 +71,6 @@ describe("resolveOutputFormat", () => {
   });
 });
 
-describe("resolveOutputPath", () => {
-  it("writes back over the source when keeping the original format", () => {
-    const source = path.join("/x", "a.jpeg");
-    assert.equal(resolveOutputPath(source, KEEP_ORIGINAL_FORMAT), source);
-  });
-
-  it("swaps the extension when converting", () => {
-    assert.equal(
-      resolveOutputPath(path.join("/x", "a.png"), "webp"),
-      path.join("/x", "a.webp"),
-    );
-  });
-
-  it("normalises alias extensions", () => {
-    assert.equal(
-      resolveOutputPath(path.join("/x", "a.jpeg"), "jpeg"),
-      path.join("/x", "a.jpg"),
-    );
-    assert.equal(
-      resolveOutputPath(path.join("/x", "a.png"), "tif"),
-      path.join("/x", "a.tiff"),
-    );
-  });
-
-  it("keeps the directory and base name", () => {
-    assert.equal(
-      resolveOutputPath(path.join("/x", "deep", "my.photo.png"), "webp"),
-      path.join("/x", "deep", "my.photo.webp"),
-    );
-  });
-});
-
 describe("outputExtensionFor", () => {
   it("returns the canonical extension for a format", () => {
     assert.equal(outputExtensionFor("jpg"), ".jpg");
@@ -118,15 +84,6 @@ describe("derived constants", () => {
     assert.ok(REQUESTABLE_FORMATS.includes(KEEP_ORIGINAL_FORMAT));
     for (const name of [...FORMAT_NAMES, "jpeg", "tif"]) {
       assert.ok(REQUESTABLE_FORMATS.includes(name), `missing ${name}`);
-    }
-  });
-
-  it("builds a glob covering every readable extension", () => {
-    for (const extension of ["jpg", "jpeg", "png", "webp", "avif", "tiff", "tif", "gif"]) {
-      assert.ok(
-        IMAGE_GLOB_PATTERN.includes(extension),
-        `glob missing ${extension}`,
-      );
     }
   });
 });
