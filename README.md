@@ -1,4 +1,4 @@
-# 🖼️ oi — Optimize Images
+<img width="1774" height="887" alt="image" src="https://github.com/user-attachments/assets/3b166bc3-b24f-449c-82af-26c4d6c12bbb" />
 
 [![npm version](https://img.shields.io/npm/v/oi-optimize-images.svg)](https://www.npmjs.com/package/oi-optimize-images)
 [![license](https://img.shields.io/npm/l/oi-optimize-images.svg)](./LICENSE)
