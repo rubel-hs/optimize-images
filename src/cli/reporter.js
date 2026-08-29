@@ -73,10 +73,14 @@ function printRunHeader(targetPath, fileCount, options, outputRoot) {
   console.log();
 }
 
+/** A dot running clockwise around a square, one quadrant lit per frame. */
+const SPINNER_FRAMES = ["◰", "◳", "◱", "◲"];
+const SPINNER_INTERVAL_MS = 120;
+
 function createProgressBar(total) {
   const bar = new cliProgress.SingleBar(
     {
-      format: `  {bar} {percentage}% | {value}/{total} files`,
+      format: `  {spinner} {bar} {percentage}% | {value}/{total} files`,
       barCompleteChar: "█",
       barIncompleteChar: "░",
       hideCursor: true,
@@ -84,7 +88,23 @@ function createProgressBar(total) {
     cliProgress.Presets.shades_classic,
   );
 
-  bar.start(total, 0);
+  bar.start(total, 0, { spinner: SPINNER_FRAMES[0] });
+
+  let frameIndex = 0;
+  const spin = setInterval(() => {
+    frameIndex = (frameIndex + 1) % SPINNER_FRAMES.length;
+    bar.update(bar.value, { spinner: SPINNER_FRAMES[frameIndex] });
+  }, SPINNER_INTERVAL_MS);
+  spin.unref();
+
+  // stop() only ever runs once, from cli/index.js's finally block — wrapping
+  // it here is the one place that's guaranteed to run, success or failure.
+  const stop = bar.stop.bind(bar);
+  bar.stop = () => {
+    clearInterval(spin);
+    stop();
+  };
+
   return bar;
 }
 
