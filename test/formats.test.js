@@ -11,6 +11,7 @@ const {
   REQUESTABLE_FORMATS,
   isSupportedImage,
   normalizeFormatName,
+  outputExtensionFor,
   resolveOutputFormat,
   resolveOutputPath,
 } = require("../src/formats");
@@ -101,6 +102,14 @@ describe("resolveOutputPath", () => {
       resolveOutputPath(path.join("/x", "deep", "my.photo.png"), "webp"),
       path.join("/x", "deep", "my.photo.webp"),
     );
+  });
+});
+
+describe("outputExtensionFor", () => {
+  it("returns the canonical extension for a format", () => {
+    assert.equal(outputExtensionFor("jpg"), ".jpg");
+    assert.equal(outputExtensionFor("tiff"), ".tiff");
+    assert.equal(outputExtensionFor("webp"), ".webp");
   });
 });
 

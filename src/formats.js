@@ -122,6 +122,11 @@ function supportsAnimation(format) {
   return Boolean(FORMATS[format]?.animated);
 }
 
+/** The extension a format writes, e.g. "jpg" -> ".jpg". */
+function outputExtensionFor(format) {
+  return FORMATS[format].outputExtension;
+}
+
 function encodeAs(pipeline, format, quality) {
   const encode = (FORMATS[format] || FORMATS[FALLBACK_FORMAT]).encode;
   return encode(pipeline, quality);
@@ -135,6 +140,7 @@ module.exports = {
   encodeAs,
   isSupportedImage,
   normalizeFormatName,
+  outputExtensionFor,
   resolveOutputFormat,
   resolveOutputPath,
   supportsAnimation,
