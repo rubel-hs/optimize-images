@@ -106,7 +106,7 @@ function parseArguments(argv) {
       return value;
     };
 
-    if (FLAGS[arg]) {
+    if (Object.hasOwn(FLAGS, arg)) {
       Object.assign(options, FLAGS[arg](next, arg));
     } else if (REMOVED_FLAGS.has(arg)) {
       throw new UserError(

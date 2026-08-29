@@ -72,3 +72,9 @@ test("exactly one path is required", () => {
   assert.throws(() => parse("./a", "./b"), UserError);
   assert.throws(() => parse("-q", "50"), UserError);
 });
+
+test("a prototype property name is not treated as a hidden flag", () => {
+  // Object.prototype.constructor is truthy, so a naive `FLAGS[arg]` lookup
+  // would silently swallow this instead of taking it as the path.
+  assert.throws(() => parse("constructor", "./images"), UserError);
+});
