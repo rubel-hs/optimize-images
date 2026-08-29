@@ -96,3 +96,22 @@ test("rejects a directory with no images", async () => {
   const dir = createTempDir();
   await assert.rejects(discoverImages(dir), UserError);
 });
+
+test("follows a symlink to an image, alongside a real file", async (t) => {
+  const dir = createTempDir();
+  const elsewhere = createTempDir();
+  const target = await writeImage(elsewhere, "target.jpg");
+  await writeImage(dir, "a.jpg");
+
+  const link = path.join(dir, "linked.jpg");
+  try {
+    require("fs").symlinkSync(target, link, "file");
+  } catch {
+    t.skip("cannot create symlinks on this platform");
+    return;
+  }
+
+  const { files } = await discoverImages(dir);
+
+  assert.deepEqual(files.map((file) => path.basename(file)), ["a.jpg", "linked.jpg"]);
+});

@@ -51,9 +51,27 @@ async function discoverImages(inputPath) {
     withFileTypes: true,
   });
 
-  const files = entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => path.join(entry.parentPath, entry.name))
+  // A symlinked directory is not traversed (readdir recursive does not follow
+  // it), but a symlinked file is: Dirent.isFile() is false for the link itself,
+  // so it needs an explicit stat — which follows the link — to confirm it
+  // resolves to a file rather than a directory or a dangling target.
+  const resolved = await Promise.all(
+    entries
+      .filter((entry) => entry.isFile() || entry.isSymbolicLink())
+      .map(async (entry) => {
+        const filePath = path.join(entry.parentPath, entry.name);
+        if (entry.isFile()) return filePath;
+        try {
+          const stats = await fs.stat(filePath);
+          return stats.isFile() ? filePath : null;
+        } catch {
+          return null; // broken symlink
+        }
+      }),
+  );
+
+  const files = resolved
+    .filter((file) => file !== null)
     .filter(isSupportedImage)
     .filter((file) => !insideOutputDir(path.relative(target, file)))
     .sort();
