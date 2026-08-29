@@ -7,7 +7,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
-## 3.0.0 — 2026-08-28
+## [3.0.0] - 2026-08-28
 
 ### Breaking
 
@@ -146,7 +146,8 @@ First release on npm as `oi-optimize-images`.
 - JPG, PNG, WebP, AVIF, TIFF and GIF, with mozjpeg for JPEG output.
 - Progress bar and a before/after savings report.
 
-[Unreleased]: https://github.com/rubel-hs/optimize-images/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/rubel-hs/optimize-images/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/rubel-hs/optimize-images/compare/v2.1.0...v3.0.0
 [2.1.0]: https://github.com/rubel-hs/optimize-images/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/rubel-hs/optimize-images/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/rubel-hs/optimize-images/compare/v1.0.1...v1.1.0
