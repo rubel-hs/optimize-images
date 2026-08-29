@@ -5,7 +5,7 @@ const path = require("path");
 const { glob } = require("glob");
 
 const { IMAGE_GLOB_PATTERN, isSupportedImage } = require("./formats");
-const { UserError } = require("./user-error");
+const { UserError } = require("./errors");
 
 /**
  * Expand a file or directory path into the absolute paths of every image to

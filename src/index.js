@@ -30,7 +30,7 @@ const {
 } = require("./formats");
 const { optimizeImage } = require("./optimize-image");
 const { optimizeImages } = require("./optimize-images");
-const { UserError } = require("./user-error");
+const { UserError } = require("./errors");
 
 module.exports = {
   CONCURRENCY_MAX,

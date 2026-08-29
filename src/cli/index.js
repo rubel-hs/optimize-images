@@ -4,7 +4,7 @@ const path = require("path");
 
 const { findImageFiles } = require("../find-image-files");
 const { optimizeImages } = require("../optimize-images");
-const { UserError } = require("../user-error");
+const { UserError } = require("../errors");
 const { parseArguments } = require("./parse-arguments");
 const { printHelp } = require("./help");
 const {

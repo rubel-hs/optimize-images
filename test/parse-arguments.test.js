@@ -8,7 +8,7 @@ const {
   CONCURRENCY_MIN,
   DEFAULT_OPTIONS,
 } = require("../src/defaults");
-const { UserError } = require("../src/user-error");
+const { UserError } = require("../src/errors");
 const { parseArguments } = require("../src/cli/parse-arguments");
 
 /** parseArguments reads process.argv, so tests skip the two leading entries. */

@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const { describe, it } = require("node:test");
 
-const { runPool } = require("../src/run-pool");
+const { runPool } = require("../src/pool");
 
 /** Resolves only once every worker that will ever run has started. */
 function tick() {

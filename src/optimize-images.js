@@ -5,8 +5,8 @@ const path = require("path");
 const { DEFAULT_OPTIONS } = require("./defaults");
 const { resolveOutputPath } = require("./formats");
 const { optimizeImage } = require("./optimize-image");
-const { runPool } = require("./run-pool");
-const { UserError } = require("./user-error");
+const { runPool } = require("./pool");
+const { UserError } = require("./errors");
 
 const noop = () => {};
 

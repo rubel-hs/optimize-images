@@ -6,7 +6,7 @@ const path = require("path");
 const { after, describe, it } = require("node:test");
 
 const { findImageFiles } = require("../src/find-image-files");
-const { UserError } = require("../src/user-error");
+const { UserError } = require("../src/errors");
 const {
   cleanupFixtures,
   createTempDir,

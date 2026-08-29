@@ -8,7 +8,7 @@ const {
   QUALITY_MIN,
 } = require("../defaults");
 const { REQUESTABLE_FORMATS, normalizeFormatName } = require("../formats");
-const { UserError } = require("../user-error");
+const { UserError } = require("../errors");
 
 const SIZE_PATTERN = /^(\d+)x(\d+)$/i;
 
