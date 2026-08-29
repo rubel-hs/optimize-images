@@ -3,15 +3,10 @@
 const path = require("path");
 
 /**
- * The single source of truth for every image format this tool understands.
- *
- * Adding a format means adding one entry here — the CLI's `--format` validation,
- * the file discovery glob, the extension lookup and the sharp encoder call are
- * all derived from this object.
- *
- * `animated` marks the formats that can hold more than one frame. Reading a
- * source as animated only pays off if the target can store the frames; do it
- * for a still target and every frame lands in one tall strip instead.
+ * Single source of truth for supported formats. Adding a format = adding one
+ * entry; validation, discovery and encoding all derive from it. `animated`
+ * marks formats that can hold more than one frame — reading a source as
+ * animated only pays off when the target can store frames.
  */
 const FORMATS = {
   jpg: {
@@ -67,20 +62,11 @@ const REQUESTABLE_FORMATS = [
   ...Object.keys(FORMAT_ALIASES),
 ];
 
-const INPUT_EXTENSIONS = FORMAT_NAMES.flatMap(
-  (name) => FORMATS[name].inputExtensions,
-);
-
 const FORMAT_BY_INPUT_EXTENSION = Object.fromEntries(
   FORMAT_NAMES.flatMap((name) =>
     FORMATS[name].inputExtensions.map((extension) => [extension, name]),
   ),
 );
-
-/** e.g. `**\/*.{jpg,jpeg,png,webp,avif,tiff,tif,gif}` */
-const IMAGE_GLOB_PATTERN = `**/*.{${INPUT_EXTENSIONS.map((extension) =>
-  extension.slice(1),
-).join(",")}}`;
 
 /** Canonical format name for anything the user typed, or `null` if unknown. */
 function normalizeFormatName(requestedFormat) {
@@ -103,23 +89,14 @@ function resolveOutputFormat(filePath, requestedFormat) {
   return FORMAT_BY_INPUT_EXTENSION[extension] || FALLBACK_FORMAT;
 }
 
-/** Where a given file should be written — the file itself when keeping format. */
-function resolveOutputPath(filePath, requestedFormat) {
-  if (requestedFormat === KEEP_ORIGINAL_FORMAT) return filePath;
-
-  const format = normalizeFormatName(requestedFormat);
-  const currentExtension = path.extname(filePath);
-  const baseName = path.basename(filePath, currentExtension);
-
-  return path.join(
-    path.dirname(filePath),
-    `${baseName}${FORMATS[format].outputExtension}`,
-  );
-}
-
 /** Whether a format can store more than one frame. */
 function supportsAnimation(format) {
   return Boolean(FORMATS[format]?.animated);
+}
+
+/** The extension a format writes, e.g. "jpg" -> ".jpg". */
+function outputExtensionFor(format) {
+  return FORMATS[format].outputExtension;
 }
 
 function encodeAs(pipeline, format, quality) {
@@ -129,13 +106,12 @@ function encodeAs(pipeline, format, quality) {
 
 module.exports = {
   FORMAT_NAMES,
-  IMAGE_GLOB_PATTERN,
   KEEP_ORIGINAL_FORMAT,
   REQUESTABLE_FORMATS,
   encodeAs,
   isSupportedImage,
   normalizeFormatName,
+  outputExtensionFor,
   resolveOutputFormat,
-  resolveOutputPath,
   supportsAnimation,
 };

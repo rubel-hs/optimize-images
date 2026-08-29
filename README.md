@@ -10,13 +10,15 @@
 oi ./images
 ```
 
-That's it. Every image in the folder gets compressed in place, and you get told
-exactly how many bytes you saved. Powered by [sharp](https://sharp.pixelplumbing.com/).
+Optimized copies land in `./images-oi-out/` — your originals are never
+touched. You get told exactly how many bytes you saved. Powered by
+[sharp](https://sharp.pixelplumbing.com/).
 
 ```
   oi — Optimize Images
   ─────────────────────
   Path:     /home/you/site/images
+  Output:   /home/you/site/images-oi-out
   Images:   24
   Quality:  80
   Format:   original (keep)
@@ -25,6 +27,7 @@ exactly how many bytes you saved. Powered by [sharp](https://sharp.pixelplumbing
   ████████████████████ 100% | 24/24 files
 
   ✓ 24 image(s) optimized
+  Output: /home/you/site/images-oi-out
   Before: 18.4 MB  →  After: 3.1 MB
   Saved: 15.3 MB (83.2%)
 ```
@@ -39,15 +42,17 @@ exactly how many bytes you saved. Powered by [sharp](https://sharp.pixelplumbing
 - 🔄 **Format conversion** — JPG, PNG, WebP, AVIF, TIFF, GIF
 - 📐 **Smart resize** — fits inside your box and never upscales a small image
 - 📊 **Live progress bar** — plus a before/after savings report at the end
-- 🛡️ **Safe writes** — each file lands in a temp file and is renamed, so a
-  cancelled run never leaves a half-written image where your original was
+- 🛡️ **Non-destructive by default** — output goes to a sibling `-oi-out`
+  folder; add `--in-place` when you want the old overwrite behavior
+- 🔒 **Safe writes** — each file lands in a temp file and is renamed, so a
+  cancelled run never leaves a half-written image behind
 - 🙃 **Upright photos** — bakes in the camera's rotation instead of dropping it
 - 🎞️ **Keeps animations** — animated GIF and WebP keep every frame
-- ⚖️ **Never grows a file** — if re-encoding would cost bytes, the original stays
-- 🧹 **Optional cleanup** — drop the source files after converting
+- ⚖️ **Never grows a file** — if re-encoding would cost bytes, the original
+  size wins instead
 - 💪 **Keeps going** — one broken image is reported and skipped, not fatal
 - 🚀 **mozjpeg encoding** — smaller JPEGs than stock at the same quality
-- 🪶 **Tiny install** — 15.5 kB packed, sharp plus three small helpers
+- 🪶 **Tiny install** — sharp plus cli-progress, nothing else
 - 🧩 **Usable as a library** — `require("oi-optimize-images")` for the same engine without the CLI
 
 ---
@@ -88,6 +93,8 @@ npx oi-optimize-images ./images -q 70
 oi ./images
 ```
 
+Writes optimized copies to `./images-oi-out/`. `./images` itself is untouched.
+
 **Squash harder:**
 
 ```bash
@@ -100,10 +107,16 @@ oi ./images -q 60
 oi ./images -f webp
 ```
 
-**Convert to WebP and delete the old files:**
+**Overwrite the originals instead of writing copies:**
 
 ```bash
-oi ./images -f webp -d
+oi ./images --in-place
+```
+
+**Write into a folder you choose:**
+
+```bash
+oi ./images -o ./optimized
 ```
 
 **Make thumbnails, max 400×400:**
@@ -121,8 +134,11 @@ oi ./images -j 2
 **Just one file:**
 
 ```bash
-oi photo.png -f webp
+oi ./pics/photo.jpg
 ```
+
+Writes to `./pics-oi-out/photo.jpg` — a single file follows the same
+parent-folder sibling rule as a directory.
 
 ---
 
@@ -134,8 +150,11 @@ oi photo.png -f webp
 | `-f, --format <fmt>` | 🔄 `original`, `jpg`, `png`, `webp`, `avif`, `tiff`, `gif` | `original` |
 | `-s, --size <WxH>` | 📐 Fit inside these dimensions, e.g. `800x600` | none |
 | `-j, --concurrency <n>` | 🧵 Images encoded at once | one per core |
-| `-d, --delete-original` | 🧹 Delete the source after converting to a new format | off |
+| `-o, --output <dir>` | 📁 Write into `<dir>` instead of the `-oi-out` sibling | none |
+| `--in-place` | ♻️ Overwrite the source files where they are | off |
 | `-h, --help` | 💬 Show help | |
+
+`--in-place` and `-o` can't be combined — pick one.
 
 **Which quality should I use?**
 
@@ -167,23 +186,31 @@ Turning `-j` *down* is the useful direction, for when you want the machine back.
 
 ## ⚠️ Good to know
 
-- **It overwrites in place.** With `-f original` your source file *is* the
-  output file. Run it on a copy, or on a clean git tree, if you want the
-  originals back.
-- **`-d` is a no-op with `-f original`** — it only deletes when the output path
-  actually differs from the input path, so it can't delete your only copy.
+- **Originals stay put by default.** Output goes to a sibling folder named
+  `<input>-oi-out` — `oi ./images` writes into `./images-oi-out`, and a single
+  file like `oi ./pics/photo.jpg` writes into `./pics-oi-out/photo.jpg`. Use
+  `--in-place` to overwrite sources the old way, or `-o <dir>` to pick the
+  output folder yourself.
+- **`*-oi-out` folders are skipped on the way in.** Pointing `oi` at a parent
+  folder never re-processes a previous run's own output.
+- **A file that can't be shrunk still lands in the output folder.** Out of
+  place, with the format unchanged, a file that would grow is copied over as
+  is instead of being skipped, so the output stays a complete mirror of the
+  input.
 - **`-s` never enlarges.** It uses fit-inside with no upscaling, so an image
   already smaller than your box is left at its own size.
 - **Two files can't share one output.** If `logo.jpg` and `logo.png` would both
   become `logo.webp`, the run stops before writing anything and tells you which
   two clash. Convert them separately.
-- **Re-running a conversion is safe.** A second `oi ./images -f webp` skips the
-  `.webp` files the first run made, since a source file is about to replace them
-  anyway. The summary says how many were left alone.
-- **Re-running costs quality.** Each pass re-encodes, so compressing an already
-  compressed file again degrades it further. A rewrite that would come out
-  *bigger* is thrown away and the original kept — but that is a size guard, not
-  a quality one.
+- **A file already in the target format is skipped, not fought over.** If a
+  folder holds both `logo.jpg` and `logo.webp` and you convert it to webp, the
+  `.jpg` converts and the existing `.webp` is left alone rather than causing a
+  collision error — the same rule that makes a second `--in-place` run over
+  the same folder safe. The summary says how many were left alone.
+- **Re-running costs quality, with `--in-place`.** Each pass re-encodes, so
+  compressing an already compressed file again degrades it further. A rewrite
+  that would come out *bigger* is thrown away and the original kept — but that
+  is a size guard, not a quality one.
 - **`-j` reads the cores you actually have.** Inside a container limited to one
   CPU it uses one worker rather than the host's full count.
 
@@ -196,22 +223,54 @@ Turning `-j` *down* is the useful direction, for when you want the machine back.
 The CLI is a thin layer over an API you can call yourself:
 
 ```js
-const { findImageFiles, optimizeImages, formatBytes } = require("oi-optimize-images");
+const { discoverImages, optimizeImages } = require("oi-optimize-images");
 
-const files = await findImageFiles("./images");
-const summary = await optimizeImages(files, { quality: 70, format: "webp" });
+const { root, files } = await discoverImages("./images");
+const summary = await optimizeImages(files, { inputRoot: root, quality: 70 });
 
-console.log(`Saved ${formatBytes(summary.originalSize - summary.newSize)}`);
+console.log(`Saved ${summary.originalSize - summary.newSize} bytes`);
+console.log(`Output in ${summary.outputDir}`);
 ```
 
-`optimizeImages` takes the same options as the flags (`quality`, `format`,
-`size: { width, height }`, `deleteOriginal`, `concurrency`) and an optional
-`{ onProgress, onFailure }` pair of callbacks. It never prints and never exits —
-bad input throws a `UserError`.
+`discoverImages(path)` resolves `path` and returns `{ root, files }`: the
+folder the run is rooted at and the absolute path of every image found under
+it (a single file's `root` is its parent folder). `*-oi-out` folders are
+skipped automatically.
+
+By default nothing under `root` is modified — output goes to the
+`${root}-oi-out` sibling. Pass `output: "<dir>"` for a folder of your choosing,
+or `inPlace: true` to overwrite sources instead; `inputRoot` is required
+unless `inPlace` is set. `optimizeImages` otherwise takes the same tuning
+options as the flags (`quality`, `format`, `size: { width, height }`,
+`concurrency`) and an optional third argument, `{ onProgress, onFailure }`.
+It never prints and never exits — bad input throws a `UserError`.
+
+`summary` comes back as
+`{ total, optimized, copied, skipped, failed, originalSize, newSize, failures, outputDir }`.
+`copied` counts files that couldn't be shrunk and were mirrored unchanged;
+`outputDir` is `null` when `inPlace` was used.
 
 `concurrency` defaults to one image per core. `QUALITY_MIN`/`QUALITY_MAX` and
 `CONCURRENCY_MIN`/`CONCURRENCY_MAX` are exported if you want to validate input
 before handing it over.
+
+---
+
+## 🔀 Migrating from 2.x
+
+- **The default output location changed.** `oi ./images` used to overwrite
+  files in `./images`; it now writes into `./images-oi-out` and leaves
+  `./images` alone. Add `--in-place` to get the old overwrite behavior back,
+  or `-o <dir>` to pick a different output folder.
+- **`-d, --delete-original` is gone.** Originals are kept by default now, so
+  there's nothing to opt out of deleting. `--in-place` still overwrites a
+  source in place, including when converting it to a new format.
+- **API renames.** `findImageFiles` is now `discoverImages` and returns
+  `{ root, files }` instead of a plain array. `optimizeImages` takes
+  `inputRoot` / `output` / `inPlace` instead of `deleteOriginal`. The summary
+  gained `copied` and `outputDir` and lost `deleted`. `optimizeImage` and
+  `formatBytes` are no longer exported.
+- **Node >= 20.12 is now required**, up from 20.9.0.
 
 ---
 
@@ -223,15 +282,15 @@ src/
   index.js                   public API — the root export
   formats.js                 every supported format: extensions + sharp encoder
   defaults.js                default options, quality and worker ranges
-  find-image-files.js        a path in, absolute image paths out
-  optimize-image.js          one file: resize, encode, atomic write, cleanup
-  optimize-images.js         many files: plan, spread over workers, tally
-  run-pool.js                runs N jobs at a time, results in input order
-  format-bytes.js            1536 -> "1.5 KB"
-  user-error.js              problems the user can fix
+  discover.js                a path in, { root, files } out — skips *-oi-out folders
+  plan.js                    decides each job's output path and collision rules
+  encode.js                  one file: resize, encode, atomic write
+  run.js                     many files: plan the jobs, spread over workers, tally a summary
+  pool.js                    runs N jobs at a time, results in input order
+  errors.js                  problems the user can fix
   cli/
     index.js                 wires parsing, discovery and reporting together
-    parse-arguments.js       argv -> options
+    args.js                  argv -> options
     help.js                  the --help screen
     reporter.js              every line the CLI prints
     tune-runtime.js          sizes the thread pool before sharp loads
@@ -241,7 +300,7 @@ test/                        one file per module, plus end-to-end CLI tests
 Two rules keep it easy to work in:
 
 - **Formats live in one place.** `src/formats.js` drives `--format` validation,
-  the file-discovery glob, the extension lookup and the sharp call. Supporting a
+  file discovery, the extension lookup and the sharp call. Supporting a
   new format is one entry in `FORMATS` and nothing else.
 - **The core never prints and never exits.** Anything under `src/` outside
   `src/cli/` throws `UserError` and returns data. `src/cli/reporter.js` owns the
@@ -262,7 +321,7 @@ Every user-visible change goes in [CHANGELOG.md](./CHANGELOG.md) under
 
 ## 📋 Requirements
 
-Node.js **>= 20.9.0**
+Node.js **>= 20.12.0**
 
 ## 📄 License
 

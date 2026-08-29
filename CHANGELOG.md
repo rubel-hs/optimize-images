@@ -7,6 +7,31 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-08-28
+
+### Breaking
+
+- `oi` no longer modifies source images by default. Output goes to a sibling
+  folder named `<input>-oi-out` (a single file goes to its parent's sibling:
+  `./pics/photo.jpg` → `./pics-oi-out/photo.jpg`). Use `--in-place` for the
+  old overwrite behavior, or `-o <dir>` for a custom output folder.
+- `-d, --delete-original` was removed. Originals are kept by default; use
+  `--in-place` to overwrite them.
+- Programmatic API: `findImageFiles` is now `discoverImages` and returns
+  `{ root, files }`; `optimizeImages` takes `inputRoot` / `output` / `inPlace`
+  options; the summary gained `copied` and `outputDir` and lost `deleted`;
+  `optimizeImage` and `formatBytes` are no longer exported.
+- Node >= 20.12 required.
+
+### Changed
+
+- Directories named `*-oi-out` are skipped during discovery, so re-running on
+  a parent folder never re-processes previous output.
+- In out-of-place same-format runs, a file that cannot be shrunk is copied to
+  the output folder unchanged, keeping it a complete drop-in mirror.
+- Dependencies trimmed to `sharp` and `cli-progress` (`glob` and `chalk`
+  replaced by Node built-ins).
+
 ## [2.1.0] - 2026-08-27
 
 Images are now encoded several at a time instead of one after another, and seven
@@ -121,7 +146,8 @@ First release on npm as `oi-optimize-images`.
 - JPG, PNG, WebP, AVIF, TIFF and GIF, with mozjpeg for JPEG output.
 - Progress bar and a before/after savings report.
 
-[Unreleased]: https://github.com/rubel-hs/optimize-images/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/rubel-hs/optimize-images/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/rubel-hs/optimize-images/compare/v2.1.0...v3.0.0
 [2.1.0]: https://github.com/rubel-hs/optimize-images/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/rubel-hs/optimize-images/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/rubel-hs/optimize-images/compare/v1.0.1...v1.1.0

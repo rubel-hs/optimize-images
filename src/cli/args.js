@@ -8,14 +8,13 @@ const {
   QUALITY_MIN,
 } = require("../defaults");
 const { REQUESTABLE_FORMATS, normalizeFormatName } = require("../formats");
-const { UserError } = require("../user-error");
+const { UserError } = require("../errors");
 
 const SIZE_PATTERN = /^(\d+)x(\d+)$/i;
 
 /**
- * Each flag reads its own value off the argument list and returns the options it
- * contributes. `next()` pulls the flag's value, so adding a flag means adding
- * one entry here and one line to the help text.
+ * Each flag reads its own value off the argument list and returns the options
+ * it contributes. Adding a flag: one entry here, one line in help.js.
  */
 const FLAGS = {
   "-q": readQuality,
@@ -26,11 +25,16 @@ const FLAGS = {
   "--size": readSize,
   "-j": readConcurrency,
   "--concurrency": readConcurrency,
-  "-d": () => ({ deleteOriginal: true }),
-  "--delete-original": () => ({ deleteOriginal: true }),
+  "-o": readOutput,
+  "--output": readOutput,
+  "--in-place": () => ({ inPlace: true }),
 };
 
 const HELP_FLAGS = new Set(["-h", "--help"]);
+const VERSION_FLAGS = new Set(["-v", "--version"]);
+
+/** Flags that existed before 3.0.0 and deserve a pointed error. */
+const REMOVED_FLAGS = new Set(["-d", "--delete-original"]);
 
 function readQuality(next, flag) {
   const quality = parseInt(next(flag), 10);
@@ -77,19 +81,42 @@ function readSize(next, flag) {
   };
 }
 
+function readOutput(next, flag) {
+  return { output: next(flag) };
+}
+
 /**
  * Turn `process.argv` into options.
  *
- * @returns {{helpRequested: boolean, path: string|null, ...DEFAULT_OPTIONS}}
+ * @returns {{helpRequested: boolean, versionRequested: boolean, path: string|null, ...DEFAULT_OPTIONS}}
  */
 function parseArguments(argv) {
   const args = argv.slice(2);
 
   if (args.length === 0 || args.some((arg) => HELP_FLAGS.has(arg))) {
-    return { ...DEFAULT_OPTIONS, path: null, helpRequested: true };
+    return {
+      ...DEFAULT_OPTIONS,
+      path: null,
+      helpRequested: true,
+      versionRequested: false,
+    };
   }
 
-  const options = { ...DEFAULT_OPTIONS, path: null, helpRequested: false };
+  if (args.some((arg) => VERSION_FLAGS.has(arg))) {
+    return {
+      ...DEFAULT_OPTIONS,
+      path: null,
+      helpRequested: false,
+      versionRequested: true,
+    };
+  }
+
+  const options = {
+    ...DEFAULT_OPTIONS,
+    path: null,
+    helpRequested: false,
+    versionRequested: false,
+  };
 
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];
@@ -99,8 +126,13 @@ function parseArguments(argv) {
       return value;
     };
 
-    if (FLAGS[arg]) {
+    if (Object.hasOwn(FLAGS, arg)) {
       Object.assign(options, FLAGS[arg](next, arg));
+    } else if (REMOVED_FLAGS.has(arg)) {
+      throw new UserError(
+        `"${arg}" was removed: originals are kept by default now. ` +
+          `Use --in-place to overwrite them.`,
+      );
     } else if (arg.startsWith("-")) {
       throw new UserError(`Unknown flag "${arg}".`);
     } else if (options.path) {
@@ -111,6 +143,10 @@ function parseArguments(argv) {
   }
 
   if (!options.path) throw new UserError("No image path provided.");
+
+  if (options.inPlace && options.output) {
+    throw new UserError("--in-place cannot be combined with -o/--output.");
+  }
 
   return options;
 }
