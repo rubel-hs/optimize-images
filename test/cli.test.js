@@ -40,6 +40,7 @@ test("default run writes the -oi-out sibling and leaves sources untouched", asyn
   assert.deepEqual(listFiles(`${input}-oi-out`), ["a.jpg", path.join("nested", "b.jpg")]);
   assert.deepEqual(fs.readFileSync(path.join(input, "a.jpg")), before);
   assert.match(stdout, /-oi-out/);
+  assert.match(stdout, /Time:\s+\S/);
 });
 
 test("running the default output twice is idempotent", async () => {

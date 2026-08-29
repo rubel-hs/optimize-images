@@ -82,6 +82,7 @@ async function assertOutputDoesNotOverlapInput(inputRoot, outputRoot) {
  * image is reported through onFailure and skipped rather than aborting.
  */
 async function optimizeImages(files, options = {}, handlers = {}) {
+  const start = Date.now();
   const { onProgress = noop, onFailure = noop } = handlers;
   const merged = { ...DEFAULT_OPTIONS, ...options };
 
@@ -148,6 +149,7 @@ async function optimizeImages(files, options = {}, handlers = {}) {
     summary.newSize += result.newSize;
   }
 
+  summary.durationMs = Date.now() - start;
   return summary;
 }
 

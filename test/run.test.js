@@ -168,6 +168,18 @@ test("rejects an unsupported format with a UserError, not a crash", async () => 
   );
 });
 
+test("the summary reports how long the run took", async () => {
+  const input = await inputFolder([["a.jpg", { width: 256, height: 256 }]]);
+
+  const summary = await optimizeImages(filesIn(input), {
+    inputRoot: input,
+    quality: 60,
+  });
+
+  assert.equal(typeof summary.durationMs, "number");
+  assert.ok(summary.durationMs >= 0);
+});
+
 test("format: undefined and format: null both fall back to the default", async () => {
   const input = await inputFolder([["a.jpg", { width: 256, height: 256 }]]);
 

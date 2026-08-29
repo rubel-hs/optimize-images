@@ -27,6 +27,16 @@ function formatBytes(bytes) {
   return `${parseFloat((bytes / 1024 ** unitIndex).toFixed(1))} ${UNITS[unitIndex]}`;
 }
 
+/** 90000 -> "1m 30s" */
+function formatDuration(ms) {
+  if (ms < 1000) return `${ms}ms`;
+  const totalSeconds = ms / 1000;
+  if (totalSeconds < 60) return `${totalSeconds.toFixed(1)}s`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.round(totalSeconds % 60);
+  return `${minutes}m ${seconds}s`;
+}
+
 function printError(message) {
   console.error(paint("red", `Error: ${message}`));
 }
@@ -123,12 +133,14 @@ function printSummary(summary) {
   } else {
     console.log(`  ${paint("dim", "No size change.")}`);
   }
+  console.log(`  ${paint("dim", "Time:")} ${formatDuration(summary.durationMs)}`);
   console.log();
 }
 
 module.exports = {
   createProgressBar,
   formatBytes,
+  formatDuration,
   paint,
   printError,
   printFatal,
