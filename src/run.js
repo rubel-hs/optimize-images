@@ -121,23 +121,35 @@ async function optimizeImages(files, options = {}, handlers = {}) {
     newSize: 0,
     failures: [],
     outputDir: outputRoot,
+    cancelled: false,
   };
 
   let completed = 0;
 
-  const outcomes = await runPool(jobs, merged.concurrency, async (job) => {
-    let outcome;
-    try {
-      outcome = { result: await encodeImage(job, merged) };
-    } catch (error) {
-      outcome = { error };
-      onFailure(job.source, error);
-    }
-    onProgress(++completed, jobs.length);
-    return outcome;
-  });
+  const outcomes = await runPool(
+    jobs,
+    merged.concurrency,
+    async (job) => {
+      let outcome;
+      try {
+        outcome = { result: await encodeImage(job, merged) };
+      } catch (error) {
+        outcome = { error };
+        onFailure(job.source, error);
+      }
+      onProgress(++completed, jobs.length);
+      return outcome;
+    },
+    merged.signal,
+  );
 
-  for (const [index, { result, error }] of outcomes.entries()) {
+  summary.cancelled = Boolean(merged.signal?.aborted);
+
+  for (const [index, outcome] of outcomes.entries()) {
+    // A cancelled run leaves holes for the jobs it never picked up.
+    if (!outcome) continue;
+    const { result, error } = outcome;
+
     if (error) {
       summary.failed++;
       summary.failures.push({ file: jobs[index].source, message: error.message });

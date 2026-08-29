@@ -71,6 +71,8 @@ function printRunHeader(targetPath, fileCount, options, outputRoot) {
     );
   }
   console.log();
+  console.log(paint("dim", "  Ctrl+C to stop"));
+  console.log();
 }
 
 /**
@@ -169,6 +171,12 @@ function printSummary(summary) {
       : 0;
 
   console.log();
+  if (summary.cancelled) {
+    const remaining = summary.total - summary.optimized - summary.copied - summary.failed;
+    console.log(
+      paint("yellow", `  Stopped early — ${remaining} file(s) left untouched.`),
+    );
+  }
   if (summary.failed > 0) {
     console.log(paint("yellow", `  ${summary.failed} file(s) had errors.`));
   }

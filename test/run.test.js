@@ -168,6 +168,41 @@ test("rejects an unsupported format with a UserError, not a crash", async () => 
   );
 });
 
+test("an aborted run stops early and says so in the summary", async () => {
+  const input = await inputFolder([
+    ["a.jpg", { width: 256, height: 256 }],
+    ["b.jpg", { width: 256, height: 256, seed: 2 }],
+    ["c.jpg", { width: 256, height: 256, seed: 3 }],
+    ["d.jpg", { width: 256, height: 256, seed: 4 }],
+  ]);
+  const controller = new AbortController();
+
+  const summary = await optimizeImages(
+    filesIn(input),
+    { inputRoot: input, quality: 60, concurrency: 1, signal: controller.signal },
+    { onProgress: () => controller.abort() },
+  );
+
+  assert.equal(summary.cancelled, true);
+  assert.equal(summary.total, 4);
+  // The first file finished before the abort landed; the rest never started.
+  assert.equal(summary.optimized + summary.copied + summary.failed, 1);
+  assert.equal(listFiles(`${input}-oi-out`).length, 1);
+});
+
+test("a run that is never aborted is not marked cancelled", async () => {
+  const input = await inputFolder([["a.jpg", { width: 256, height: 256 }]]);
+
+  const summary = await optimizeImages(filesIn(input), {
+    inputRoot: input,
+    quality: 60,
+    signal: new AbortController().signal,
+  });
+
+  assert.equal(summary.cancelled, false);
+  assert.equal(summary.optimized, 1);
+});
+
 test("the summary reports how long the run took", async () => {
   const input = await inputFolder([["a.jpg", { width: 256, height: 256 }]]);
 

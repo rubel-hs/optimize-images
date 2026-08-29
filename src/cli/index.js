@@ -20,6 +20,26 @@ const {
 
 const EXIT_FAILURE = 1;
 
+/** What a shell reports for a process the user interrupted. */
+const EXIT_INTERRUPTED = 130;
+
+/**
+ * Ctrl+C asks the run to stop after whatever is encoding right now, so the
+ * summary and the output folder are left in a consistent state. Registering a
+ * handler also takes over from Node's default, which would kill the process
+ * outright and leave the terminal cursor hidden. A second Ctrl+C is taken to
+ * mean "now", and exits without waiting.
+ */
+function onInterrupt(controller) {
+  const handler = () => {
+    if (controller.signal.aborted) process.exit(EXIT_INTERRUPTED);
+    controller.abort();
+  };
+
+  process.on("SIGINT", handler);
+  return () => process.removeListener("SIGINT", handler);
+}
+
 async function runCli(argv) {
   let bar = null;
   try {
@@ -41,24 +61,33 @@ async function runCli(argv) {
 
     printRunHeader(path.resolve(inputPath), files.length, options, outputRoot);
 
+    const controller = new AbortController();
+    const releaseInterrupt = onInterrupt(controller);
+
     bar = createProgressBar(files.length);
     let summary;
     try {
-      summary = await optimizeImages(files, { ...options, inputRoot: root }, {
-        onProgress: (done, total) => {
-          // Planning can drop files, so the bar can have fewer steps than found.
-          bar.setTotal(total);
-          bar.update(done);
+      summary = await optimizeImages(
+        files,
+        { ...options, inputRoot: root, signal: controller.signal },
+        {
+          onProgress: (done, total) => {
+            // Planning can drop files, so the bar can have fewer steps than found.
+            bar.setTotal(total);
+            bar.update(done);
+          },
+          onFailure: printFileFailure,
         },
-        onFailure: printFileFailure,
-      });
+      );
     } finally {
       // A collision/overwrite error thrown out of optimizeImages must not
       // leave the terminal cursor hidden.
       bar.stop();
+      releaseInterrupt();
     }
 
     printSummary(summary);
+    if (summary.cancelled) process.exitCode = EXIT_INTERRUPTED;
   } catch (error) {
     if (error instanceof UserError) {
       printError(error.message);

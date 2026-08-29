@@ -73,4 +73,46 @@ describe("runPool", () => {
       /boom/,
     );
   });
+
+  it("starts no further work once the signal aborts", async () => {
+    const controller = new AbortController();
+    const started = [];
+
+    const results = await runPool(
+      [1, 2, 3, 4, 5, 6],
+      1,
+      async (item) => {
+        started.push(item);
+        if (item === 2) controller.abort();
+        await tick();
+        return item;
+      },
+      controller.signal,
+    );
+
+    assert.deepEqual(started, [1, 2]);
+    assert.deepEqual(results.slice(0, 2), [1, 2]);
+    // The jobs that never ran leave holes rather than fabricated results.
+    assert.equal(results.length, 6);
+    assert.equal(results[2], undefined);
+    assert.equal(results.filter(() => true).length, 2);
+  });
+
+  it("lets an in-flight worker finish after an abort", async () => {
+    const controller = new AbortController();
+    let finished = false;
+
+    await runPool(
+      [1, 2],
+      2,
+      async () => {
+        controller.abort();
+        await tick();
+        finished = true;
+      },
+      controller.signal,
+    );
+
+    assert.equal(finished, true);
+  });
 });
