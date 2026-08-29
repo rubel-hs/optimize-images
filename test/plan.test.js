@@ -119,3 +119,10 @@ test("duplicate inputs are planned once and counted as skipped", () => {
   assert.equal(jobs.length, 1);
   assert.equal(skipped, 1);
 });
+
+test("an output dir that overlaps the sources is rejected", () => {
+  assert.throws(
+    () => planJobs([inRoot("a.jpg")], { ...defaults, output: ROOT }),
+    UserError,
+  );
+});

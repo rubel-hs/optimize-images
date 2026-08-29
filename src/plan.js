@@ -72,6 +72,13 @@ function planJobs(files, options) {
     const outputFormat = resolveOutputFormat(source, format);
     const outputPath = outputPathFor(source, outputFormat, format, resolvedRoot, outputRoot);
 
+    if (!inPlace && source === outputPath) {
+      throw new UserError(
+        `Output folder would overwrite the source file ${path.basename(source)}. ` +
+          `Choose a different -o directory, or use --in-place to overwrite originals.`,
+      );
+    }
+
     jobs.push({
       source,
       outputPath,
