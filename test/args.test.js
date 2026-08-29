@@ -17,6 +17,9 @@ test("a bare path gets the defaults", () => {
   assert.equal(options.format, DEFAULT_OPTIONS.format);
   assert.equal(options.inPlace, false);
   assert.equal(options.output, null);
+  assert.equal(options.size, DEFAULT_OPTIONS.size);
+  assert.equal(options.concurrency, DEFAULT_OPTIONS.concurrency);
+  assert.equal(options.inputRoot, DEFAULT_OPTIONS.inputRoot);
 });
 
 test("no arguments or -h requests help", () => {
