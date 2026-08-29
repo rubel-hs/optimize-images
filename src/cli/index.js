@@ -20,6 +20,7 @@ const {
 const EXIT_FAILURE = 1;
 
 async function runCli(argv) {
+  let bar = null;
   try {
     const { path: inputPath, helpRequested, ...options } = parseArguments(argv);
 
@@ -33,16 +34,22 @@ async function runCli(argv) {
 
     printRunHeader(path.resolve(inputPath), files.length, options, outputRoot);
 
-    const bar = createProgressBar(files.length);
-    const summary = await optimizeImages(files, { ...options, inputRoot: root }, {
-      onProgress: (done, total) => {
-        // Planning can drop files, so the bar can have fewer steps than found.
-        bar.setTotal(total);
-        bar.update(done);
-      },
-      onFailure: printFileFailure,
-    });
-    bar.stop();
+    bar = createProgressBar(files.length);
+    let summary;
+    try {
+      summary = await optimizeImages(files, { ...options, inputRoot: root }, {
+        onProgress: (done, total) => {
+          // Planning can drop files, so the bar can have fewer steps than found.
+          bar.setTotal(total);
+          bar.update(done);
+        },
+        onFailure: printFileFailure,
+      });
+    } finally {
+      // A collision/overwrite error thrown out of optimizeImages must not
+      // leave the terminal cursor hidden.
+      bar.stop();
+    }
 
     printSummary(summary);
   } catch (error) {
