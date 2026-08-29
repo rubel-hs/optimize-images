@@ -75,55 +75,9 @@ function printRunHeader(targetPath, fileCount, options, outputRoot) {
   console.log();
 }
 
-/**
- * A wave of dots travelling from the top left to the bottom right.
- *
- * Each braille glyph is a 2×4 dot grid, so five of them give a 10×4 canvas —
- * enough resolution for a sine wave riding a downward slope. A column whose
- * wave height lands between two dot rows lights both, which smooths the step
- * from one row to the next.
- */
-const SPINNER_CELLS = 5;
-const SPINNER_COLUMNS = SPINNER_CELLS * 2;
-const SPINNER_ROWS = 4;
+/** A dot chasing its way around a braille cell. */
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const SPINNER_INTERVAL_MS = 80;
-
-/** Dot bit values within one braille cell, as [column][row]. */
-const BRAILLE_DOTS = [
-  [0x01, 0x02, 0x04, 0x40],
-  [0x08, 0x10, 0x20, 0x80],
-];
-
-/** Two phase steps per column, so no two consecutive frames look alike. */
-const SPINNER_FRAME_COUNT = SPINNER_COLUMNS * 2;
-
-function spinnerRows(column, frame) {
-  const slope = 0.3 + (column / (SPINNER_COLUMNS - 1)) * 2.4;
-  const wave =
-    1.15 *
-    Math.sin(
-      ((column / SPINNER_COLUMNS) * 1.25 - frame / SPINNER_FRAME_COUNT) *
-        2 *
-        Math.PI,
-    );
-  const height = Math.min(SPINNER_ROWS - 1, Math.max(0, slope + wave));
-  const row = Math.floor(height);
-  const fraction = height - row;
-
-  return fraction > 0.42 && fraction < 0.58 && row + 1 < SPINNER_ROWS
-    ? [row, row + 1]
-    : [Math.round(height)];
-}
-
-const SPINNER_FRAMES = Array.from({ length: SPINNER_FRAME_COUNT }, (_, frame) => {
-  const cells = new Array(SPINNER_CELLS).fill(0);
-  for (let column = 0; column < SPINNER_COLUMNS; column++) {
-    for (const row of spinnerRows(column, frame)) {
-      cells[Math.floor(column / 2)] |= BRAILLE_DOTS[column % 2][row];
-    }
-  }
-  return cells.map((bits) => String.fromCharCode(0x2800 + bits)).join("");
-});
 
 function createProgressBar(total) {
   const bar = new cliProgress.SingleBar(
@@ -154,6 +108,21 @@ function createProgressBar(total) {
   };
 
   return bar;
+}
+
+/**
+ * Acknowledge Ctrl+C straight away. An encode already handed to sharp cannot
+ * be called back — an AVIF one can run for a long time — so without this the
+ * bar just keeps animating and the run looks like it ignored the key.
+ */
+function printStopping() {
+  process.stderr.write(
+    paint(
+      "yellow",
+      "\n  Stopping — waiting for the images already encoding." +
+        " Press Ctrl+C again to quit now.\n",
+    ),
+  );
 }
 
 /** Written to stderr so it survives above the progress bar. */
@@ -220,6 +189,7 @@ module.exports = {
   printFatal,
   printFileFailure,
   printRunHeader,
+  printStopping,
   printSummary,
   printVersion,
 };

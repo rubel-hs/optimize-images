@@ -3,6 +3,7 @@
 const path = require("path");
 
 const { discoverImages } = require("../discover");
+const { removeUnfinishedTempFiles } = require("../encode");
 const { optimizeImages } = require("../run");
 const { resolveOutputRoot } = require("../plan");
 const { UserError } = require("../errors");
@@ -14,6 +15,7 @@ const {
   printFatal,
   printFileFailure,
   printRunHeader,
+  printStopping,
   printSummary,
   printVersion,
 } = require("./reporter");
@@ -27,13 +29,23 @@ const EXIT_INTERRUPTED = 130;
  * Ctrl+C asks the run to stop after whatever is encoding right now, so the
  * summary and the output folder are left in a consistent state. Registering a
  * handler also takes over from Node's default, which would kill the process
- * outright and leave the terminal cursor hidden. A second Ctrl+C is taken to
- * mean "now", and exits without waiting.
+ * outright and leave the terminal cursor hidden.
+ *
+ * sharp cannot be called back once it holds an image, and a single AVIF encode
+ * can run for a long time, so waiting can take a while. Say so, and treat a
+ * second Ctrl+C as "now" — deleting the half-written temp files on the way out,
+ * which the process would otherwise leave behind.
  */
-function onInterrupt(controller) {
+function onInterrupt(controller, bar) {
   const handler = () => {
-    if (controller.signal.aborted) process.exit(EXIT_INTERRUPTED);
+    if (controller.signal.aborted) {
+      bar().stop();
+      removeUnfinishedTempFiles();
+      process.exit(EXIT_INTERRUPTED);
+    }
+
     controller.abort();
+    printStopping();
   };
 
   process.on("SIGINT", handler);
@@ -62,7 +74,9 @@ async function runCli(argv) {
     printRunHeader(path.resolve(inputPath), files.length, options, outputRoot);
 
     const controller = new AbortController();
-    const releaseInterrupt = onInterrupt(controller);
+    // The bar is read through a function because the handler is armed first:
+    // Ctrl+C during the gap has a controller to abort but no bar to stop yet.
+    const releaseInterrupt = onInterrupt(controller, () => bar ?? { stop() {} });
 
     bar = createProgressBar(files.length);
     let summary;

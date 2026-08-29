@@ -6,7 +6,7 @@ const path = require("path");
 const test = require("node:test");
 const sharp = require("sharp");
 
-const { encodeImage } = require("../src/encode");
+const { encodeImage, removeUnfinishedTempFiles } = require("../src/encode");
 const {
   cleanupFixtures,
   createTempDir,
@@ -119,6 +119,43 @@ test("cleans up the temp file when encoding fails", async () => {
     }),
   );
 
+  assert.deepEqual(
+    fs.readdirSync(out).filter((name) => name.includes("oi_tmp")),
+    [],
+  );
+});
+
+test("tracks no temp file once an encode has finished", async () => {
+  const dir = createTempDir();
+  const out = createTempDir();
+  const source = await writeImage(dir, "a.jpg", { width: 128, height: 128 });
+
+  await encodeImage(job(source, path.join(out, "a.jpg"), "jpg", "copy"), {
+    quality: 60,
+    size: null,
+  });
+
+  // Nothing is in flight, so a hard exit right now would have nothing to clean.
+  assert.equal(removeUnfinishedTempFiles(), 0);
+});
+
+test("removeUnfinishedTempFiles deletes what an interrupted encode left behind", async () => {
+  const dir = createTempDir();
+  const out = createTempDir();
+  const source = await writeImage(dir, "slow.jpg", { width: 900, height: 900 });
+
+  // Start an encode and pull the plug the way a second Ctrl+C does: no await,
+  // so the temp file is still open when we clean up.
+  const pending = encodeImage(
+    job(source, path.join(out, "slow.avif"), "avif", "write"),
+    { quality: 60, size: null },
+  );
+
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  const removed = removeUnfinishedTempFiles();
+
+  assert.ok(removed >= 1, `expected at least one temp file removed, got ${removed}`);
+  await pending.catch(() => {}); // the interrupted encode may now fail; that is fine
   assert.deepEqual(
     fs.readdirSync(out).filter((name) => name.includes("oi_tmp")),
     [],

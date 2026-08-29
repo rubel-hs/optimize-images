@@ -2,6 +2,7 @@
 
 const crypto = require("crypto");
 const fs = require("fs/promises");
+const fsSync = require("fs");
 const sharp = require("sharp");
 
 const { encodeAs, supportsAnimation } = require("./formats");
@@ -9,9 +10,38 @@ const { encodeAs, supportsAnimation } = require("./formats");
 /** Written first, then renamed, so a cancelled run never truncates an image. */
 const TEMP_SUFFIX = ".oi_tmp";
 
+/**
+ * Temp files with an encode still running behind them. An encode cannot be
+ * cancelled once sharp has it, so a caller quitting immediately (a second
+ * Ctrl+C) has to delete these itself or they outlive the process.
+ */
+const unfinishedTempPaths = new Set();
+
 /** Random per call so no two writers ever share a temp path. */
 function temporaryPathFor(outputPath) {
   return `${outputPath}.${crypto.randomBytes(6).toString("hex")}${TEMP_SUFFIX}`;
+}
+
+/**
+ * Delete every temp file whose encode never finished. Synchronous on purpose:
+ * the one caller is about to exit the process, and a promise would not settle.
+ *
+ * @returns {number} how many were removed
+ */
+function removeUnfinishedTempFiles() {
+  let removed = 0;
+
+  for (const tempPath of unfinishedTempPaths) {
+    try {
+      fsSync.rmSync(tempPath, { force: true });
+      removed++;
+    } catch {
+      // Best effort: exiting matters more than a leftover file.
+    }
+  }
+
+  unfinishedTempPaths.clear();
+  return removed;
 }
 
 /**
@@ -37,6 +67,7 @@ async function encodeImage(job, { quality, size } = {}) {
   }
 
   const tempPath = temporaryPathFor(job.outputPath);
+  unfinishedTempPaths.add(tempPath);
 
   try {
     await encodeAs(pipeline, job.format, quality).toFile(tempPath);
@@ -59,7 +90,9 @@ async function encodeImage(job, { quality, size } = {}) {
   } catch (error) {
     await fs.rm(tempPath, { force: true });
     throw error;
+  } finally {
+    unfinishedTempPaths.delete(tempPath);
   }
 }
 
-module.exports = { encodeImage };
+module.exports = { encodeImage, removeUnfinishedTempFiles };
