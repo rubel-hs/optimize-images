@@ -16,15 +16,16 @@ test.after(cleanupFixtures);
 
 test("returns the resolved directory as root with every nested image", async () => {
   const dir = createTempDir();
-  await writeImage(dir, "a.jpg");
+  await writeImage(dir, "z.jpg");
   await writeImage(dir, path.join("nested", "b.png"));
+  await writeImage(dir, "a.jpg");
 
   const { root, files } = await discoverImages(dir);
 
   assert.equal(root, path.resolve(dir));
   assert.deepEqual(
-    files.map((file) => path.relative(root, file)).sort(),
-    ["a.jpg", path.join("nested", "b.png")],
+    files.map((file) => path.relative(root, file)),
+    ["a.jpg", path.join("nested", "b.png"), "z.jpg"],
   );
 });
 
