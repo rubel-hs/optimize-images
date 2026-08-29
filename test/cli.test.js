@@ -42,6 +42,23 @@ test("default run writes the -oi-out sibling and leaves sources untouched", asyn
   assert.match(stdout, /-oi-out/);
 });
 
+test("running the default output twice is idempotent", async () => {
+  const input = await inputFolder();
+  const before = listFiles(input).map((rel) => fs.readFileSync(path.join(input, rel)));
+
+  await oi(input, "-q", "60");
+  const firstRunOutput = listFiles(`${input}-oi-out`);
+
+  await oi(input, "-q", "60");
+  const secondRunOutput = listFiles(`${input}-oi-out`);
+
+  assert.deepEqual(secondRunOutput, firstRunOutput);
+  assert.deepEqual(
+    listFiles(input).map((rel) => fs.readFileSync(path.join(input, rel))),
+    before,
+  );
+});
+
 test("-o writes into the given folder", async () => {
   const input = await inputFolder();
   const custom = path.join(createTempDir(), "optimized");

@@ -110,6 +110,33 @@ test("a broken image is reported and the run continues", async () => {
   assert.equal(summary.failures[0].file, path.join(input, "broken.png"));
 });
 
+test("rejects -o aliased to the input dir through a symlink", async (t) => {
+  const input = await inputFolder([["a.jpg", {}]]);
+  const link = path.join(path.dirname(input), "link-to-images");
+
+  try {
+    fs.symlinkSync(input, link, "dir");
+  } catch {
+    t.skip("cannot create symlinks on this platform");
+    return;
+  }
+
+  await assert.rejects(
+    optimizeImages(filesIn(input), { inputRoot: input, output: link }),
+    UserError,
+  );
+});
+
+test("rejects an output folder nested inside the input tree", async () => {
+  const input = await inputFolder([["a.jpg", {}]]);
+  const nestedOut = path.join(input, "out");
+
+  await assert.rejects(
+    optimizeImages(filesIn(input), { inputRoot: input, output: nestedOut }),
+    UserError,
+  );
+});
+
 test("rejects an output path that exists as a file", async () => {
   const input = await inputFolder([["a.jpg", {}]]);
   const clash = path.join(createTempDir(), "not-a-dir");
