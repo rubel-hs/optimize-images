@@ -28,6 +28,12 @@ test("no arguments or -h requests help", () => {
   assert.equal(parse("./images", "--help").helpRequested, true);
 });
 
+test("-v or --version requests the version, without requiring a path", () => {
+  assert.equal(parse("-v").versionRequested, true);
+  assert.equal(parse("--version").versionRequested, true);
+  assert.equal(parse("./images", "--version").versionRequested, true);
+});
+
 test("quality, format, size, concurrency parse as before", () => {
   const options = parse("./images", "-q", "60", "-f", "webp", "-s", "600x300", "-j", "2");
   assert.equal(options.quality, 60);

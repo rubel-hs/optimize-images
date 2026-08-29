@@ -24,6 +24,7 @@ ${paint("bold", "Options:")}
   -o, --output <dir>      Write optimized images to <dir> instead of the -oi-out sibling
       --in-place          Overwrite the original files where they are
   -h, --help              Show this help
+  -v, --version           Show version number
 
 ${paint("bold", "Examples:")}
   oi ./images                    Optimize into ./images-oi-out

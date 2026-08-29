@@ -31,6 +31,7 @@ const FLAGS = {
 };
 
 const HELP_FLAGS = new Set(["-h", "--help"]);
+const VERSION_FLAGS = new Set(["-v", "--version"]);
 
 /** Flags that existed before 3.0.0 and deserve a pointed error. */
 const REMOVED_FLAGS = new Set(["-d", "--delete-original"]);
@@ -87,16 +88,35 @@ function readOutput(next, flag) {
 /**
  * Turn `process.argv` into options.
  *
- * @returns {{helpRequested: boolean, path: string|null, ...DEFAULT_OPTIONS}}
+ * @returns {{helpRequested: boolean, versionRequested: boolean, path: string|null, ...DEFAULT_OPTIONS}}
  */
 function parseArguments(argv) {
   const args = argv.slice(2);
 
   if (args.length === 0 || args.some((arg) => HELP_FLAGS.has(arg))) {
-    return { ...DEFAULT_OPTIONS, path: null, helpRequested: true };
+    return {
+      ...DEFAULT_OPTIONS,
+      path: null,
+      helpRequested: true,
+      versionRequested: false,
+    };
   }
 
-  const options = { ...DEFAULT_OPTIONS, path: null, helpRequested: false };
+  if (args.some((arg) => VERSION_FLAGS.has(arg))) {
+    return {
+      ...DEFAULT_OPTIONS,
+      path: null,
+      helpRequested: false,
+      versionRequested: true,
+    };
+  }
+
+  const options = {
+    ...DEFAULT_OPTIONS,
+    path: null,
+    helpRequested: false,
+    versionRequested: false,
+  };
 
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];

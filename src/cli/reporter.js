@@ -5,6 +5,7 @@ const { styleText } = require("util");
 const cliProgress = require("cli-progress");
 
 const { KEEP_ORIGINAL_FORMAT } = require("../formats");
+const { version } = require("../../package.json");
 
 /** Everything the CLI prints lives here, so the core stays terminal-agnostic. */
 
@@ -32,6 +33,10 @@ function printError(message) {
 
 function printFatal(message) {
   console.error(paint("red", `Fatal: ${message}`));
+}
+
+function printVersion() {
+  console.log(version);
 }
 
 function printRunHeader(targetPath, fileCount, options, outputRoot) {
@@ -130,4 +135,5 @@ module.exports = {
   printFileFailure,
   printRunHeader,
   printSummary,
+  printVersion,
 };

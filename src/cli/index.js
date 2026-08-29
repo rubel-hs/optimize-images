@@ -15,6 +15,7 @@ const {
   printFileFailure,
   printRunHeader,
   printSummary,
+  printVersion,
 } = require("./reporter");
 
 const EXIT_FAILURE = 1;
@@ -22,10 +23,16 @@ const EXIT_FAILURE = 1;
 async function runCli(argv) {
   let bar = null;
   try {
-    const { path: inputPath, helpRequested, ...options } = parseArguments(argv);
+    const { path: inputPath, helpRequested, versionRequested, ...options } =
+      parseArguments(argv);
 
     if (helpRequested) {
       printHelp();
+      return;
+    }
+
+    if (versionRequested) {
+      printVersion();
       return;
     }
 

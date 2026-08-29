@@ -120,3 +120,11 @@ test("--help prints usage and exits 0", async () => {
   assert.match(stdout, /-o, --output/);
   assert.doesNotMatch(stdout, /--delete-original/);
 });
+
+test("-v prints the package version and exits 0", async () => {
+  const { version } = require("../package.json");
+
+  const { stdout } = await oi("-v");
+
+  assert.equal(stdout.trim(), version);
+});
