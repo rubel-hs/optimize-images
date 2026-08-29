@@ -3,15 +3,10 @@
 const path = require("path");
 
 /**
- * The single source of truth for every image format this tool understands.
- *
- * Adding a format means adding one entry here — the CLI's `--format` validation,
- * the file discovery filter, the extension lookup and the sharp encoder call
- * are all derived from this object.
- *
- * `animated` marks the formats that can hold more than one frame. Reading a
- * source as animated only pays off if the target can store the frames; do it
- * for a still target and every frame lands in one tall strip instead.
+ * Single source of truth for supported formats. Adding a format = adding one
+ * entry; validation, discovery and encoding all derive from it. `animated`
+ * marks formats that can hold more than one frame — reading a source as
+ * animated only pays off when the target can store frames.
  */
 const FORMATS = {
   jpg: {

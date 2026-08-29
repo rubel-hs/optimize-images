@@ -1,7 +1,6 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const path = require("path");
 const { describe, it } = require("node:test");
 
 const {

@@ -1,11 +1,6 @@
 "use strict";
 
-/**
- * A problem the user can fix — a bad flag, a missing path, an unsupported file.
- *
- * Throwing this instead of exiting keeps every module testable and lets the CLI
- * decide once, in one place, how such problems are printed.
- */
+/** A problem the user can fix; the CLI prints these without a stack trace. */
 class UserError extends Error {
   constructor(message) {
     super(message);
